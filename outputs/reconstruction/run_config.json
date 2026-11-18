@@ -1,0 +1,11 @@
+{
+  "calibration": null,
+  "scenario": "reconstruction",
+  "tau": 0.9,
+  "eps": 100.0,
+  "delta": 1e-05,
+  "n_identities": 10000,
+  "static_k": 4,
+  "outdir": "outputs/reconstruction",
+  "no_figures": true
+}

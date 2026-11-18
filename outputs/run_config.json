@@ -1,0 +1,11 @@
+{
+  "calibration": null,
+  "scenario": "task_decoupled",
+  "tau": 0.9,
+  "eps": 100.0,
+  "delta": 1e-05,
+  "n_identities": 10000,
+  "static_k": 4,
+  "outdir": "/home/user/Doubao/chats/38453880133444866/semantic_dp_accounting/outputs",
+  "no_figures": true
+}

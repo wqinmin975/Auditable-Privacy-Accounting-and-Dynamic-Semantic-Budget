@@ -1,0 +1,98 @@
+% =====================================================================
+%  preview.tex -- standalone two-column preview of the accounting section.
+%  Compile:  cd theory && pdflatex preview.tex   (twice, for refs)
+%  The deliverable for the paper is section_privacy_accounting.tex, which
+%  compiles inside IEEEtran; this file only proves it compiles at all and
+%  shows the intended two-column layout with the PGFPlots figures.
+% =====================================================================
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\usepackage[margin=0.75in]{geometry}
+\usepackage[colorlinks=true,linkcolor=black,urlcolor=blue]{hyperref}
+
+% ---- stand-ins for the IEEEtran-only bits used by the section ----------
+\providecommand{\RDP}{\mathrm{RDP}}
+\providecommand{\IEEEPARstart}[2]{#1#2\ }
+
+\def\figdatadir{../figures/dat/}
+
+% IEEE-style index terms environment (stand-in for IEEEtran's IEEEkeywords)
+\newenvironment{IEEEkeywords}{\paragraph{Index Terms:}}{}
+
+\begin{document}
+
+\title{Semantic Communications with Differential Privacy: Dynamic Semantic
+Budget Allocation and a Bookable Privacy Accounting}
+\author{Q.~Wang \and A.~Coauthor}
+\date{}
+\maketitle
+
+\begin{abstract}
+Semantic communication links transmit latent codes that may carry identifying
+information about the source subject. Existing privacy-oriented designs
+justify protection by the marginal distribution of the released noise rather
+than by an auditable privacy budget, which leaves the guarantee hard to state
+and compare. This paper develops a bookable accounting for decomposed semantic
+latents and an accompanying noise allocation. We isolate the per-component L2
+sensitivity, show how the accounting rule fixes the optimal noise profile, and
+give a closed-form water-filling KKT solution with two asymptotic regimes. A
+Gaussian worst-case mutual-information bound combined with Fano's inequality
+certifies an identification-error floor for an adversary observing the
+release, and we derive the complete R\'enyi-DP to $(\varepsilon,\delta)$
+conversion and the Gaussian-DP quadrature composition. On a synthetic
+calibration anchored to the reference backbone, a $0.90$ certified floor over
+$10^{4}$ templates leaves a $0.33$-bit joint leakage budget; quadrature
+composition matches the additive-noise mechanism and is tighter than linear
+composition, whose amplitude-only form under-reports $\varepsilon$ at high SNR
+($693$ versus $2441$ at the audited release). We also show that an invertible
+learned shaping cannot raise the guarantee: post-processing leaves the privacy
+loss unchanged, so such a component is legitimate only as a keyed design
+element.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Semantic communications, differential privacy, R\'enyi differential privacy,
+Gaussian differential privacy, mutual information, Fano inequality, resource
+allocation, water-filling, latent representations.
+\end{IEEEkeywords}
+
+\input{../figures/figures_pgfplots}
+
+\input{section_privacy_accounting}
+
+\subsection*{Code and Data Availability}
+The calibration fixture, the closed-form allocator and its accounting
+routines, the reproduction pipeline, the PGFPlots data files and the unit
+tests are available at the public repository recorded in the submission
+metadata (DOI to be inserted upon publication). All reported numbers are
+reproduced by the included one-command script; no measured latent corpus is
+shipped in this preview, and the numerical results are based on the synthetic
+anchor calibration described in Section~\ref{sec:setup}.
+
+\begin{thebibliography}{9}
+\bibitem{dong2022gdp} J.~Dong, A.~Roth, and W.~J. Su,
+``Gaussian differential privacy,'' \emph{J. Roy. Stat. Soc. B}, vol.~84,
+no.~1, pp.~3--37, 2022.
+\bibitem{mironov2017rdp} I.~Mironov, ``R\'enyi differential privacy,'' in
+\emph{Proc. IEEE 30th Comput. Secur. Found. Symp. (CSF)}, 2017, pp.~263--275.
+\bibitem{dwork2014} C.~Dwork and A.~Roth, \emph{The Algorithmic Foundations of
+Differential Privacy}. Hanover, MA, USA: Now Publishers, 2014.
+\bibitem{fano} T.~M. Cover and J.~A. Thomas, \emph{Elements of Information
+Theory}, 2nd ed. Hoboken, NJ, USA: Wiley, 2006.
+\bibitem{semanticstylegan} Y.~Shi \emph{et al.}, ``Semantic StyleGAN: Learning
+compositional generative priors for controllable image synthesis and editing,''
+in \emph{Proc. IEEE/CVF Conf. Comput. Vis. Pattern Recognit. (CVPR)}, 2022,
+pp.~11254--11264.
+\bibitem{arXiv2510} W.~Chen, Q.~Yang, S.~Shao, S.~Tang, Z.~Shi, and S.~Yu,
+``Privacy-preserving semantic communication over wiretap channels with learnable
+differential privacy,'' 2025, \emph{arXiv:2510.23274}.
+\end{thebibliography}
+
+\end{document}

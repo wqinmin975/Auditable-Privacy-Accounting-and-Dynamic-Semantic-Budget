@@ -1,0 +1,320 @@
+% =====================================================================
+%  figures_pgfplots.tex  --  camera-ready vector figures for the
+%  privacy-accounting section.  Every plot reads a .dat file written by
+%  `python -m sdpa.figures`, so text, ticks and fonts are LaTeX-native.
+%
+%  Set the data directory before \input, e.g.
+%      \def\figdatadir{../figures/dat/}
+%  The default below assumes you compile from inside figures/.
+% =====================================================================
+\providecommand{\figdatadir}{dat/}
+\pgfplotsset{compat=1.18}
+
+% ---------------------------------------------------------------------
+% Fig. 1 -- the accounting law dictates the noise profile
+% ---------------------------------------------------------------------
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+  \pgfplotstableread{\figdatadir budget_split.dat}\bs
+  \begin{axis}[
+      width=\columnwidth, height=0.70\columnwidth,
+      xlabel={semantic component $h$},
+      ylabel={share of noise power},
+      xmin=-0.8, xmax=14.4, ymin=0, ymax=0.30,
+      xtick={0,2,...,14},
+      tick label style={font=\footnotesize},
+      label style={font=\footnotesize},
+      legend style={font=\scriptsize, draw=none, fill=none,
+                    at={(0.5,-0.26)}, anchor=north, legend columns=3},
+      ymajorgrids, grid style={densely dotted, black!25},
+      extra x ticks={0,1,3,4,5,6},
+      extra x tick labels={},
+      extra tick style={grid=major, major grid style={black!15}},
+    ]
+    \addplot[draw=none, fill=gray!10] coordinates {
+      (1.5,0)(2.5,0)(2.5,0.30)(1.5,0.30)(1.5,0)
+      (6.5,0)(7.5,0)(7.5,0.30)(6.5,0.30)(6.5,0)
+      (7.5,0)(8.5,0)(8.5,0.30)(7.5,0.30)(7.5,0)
+      (8.5,0)(9.5,0)(9.5,0.30)(8.5,0.30)(8.5,0)
+      (9.5,0)(10.5,0)(10.5,0.30)(9.5,0.30)(9.5,0)
+      (10.5,0)(11.5,0)(11.5,0.30)(10.5,0.30)(10.5,0)
+      (11.5,0)(12.5,0)(12.5,0.30)(11.5,0.30)(11.5,0)
+      (12.5,0)(13.5,0)(13.5,0.30)(12.5,0.30)(12.5,0)
+      (13.5,0)(14.5,0)(14.5,0.30)(13.5,0.30)(13.5,0)};
+    \addplot+[ybar, bar width=4pt, fill=blue!55!black, draw=none]
+      table[x expr=\thisrow{h}-0.27, y=gdp] {\bs};
+    \addplot+[ybar, bar width=4pt, fill=blue!30, draw=none]
+      table[x expr=\thisrow{h}-0.09, y=rdp] {\bs};
+    \addplot+[ybar, bar width=4pt, fill=orange!70!black, draw=none]
+      table[x expr=\thisrow{h}+0.09, y=basic] {\bs};
+    \addplot+[ybar, bar width=4pt, fill=black!40, draw=none]
+      table[x expr=\thisrow{h}+0.27, y=static] {\bs};
+    \addplot[black, mark=*, mark size=1pt, densely dotted, mark options={solid}]
+      table[x=h, y=wkappa_norm] {\bs};
+    \legend{GDP, RDP, $\ell_1$ (ampl.), static ($k{=}4$), $w_h\kappa_h$}
+  \end{axis}
+\end{tikzpicture}
+\caption{Noise-power share of the four accounting rules on the task-decoupled
+calibration ($\varepsilon{=}100$, $\delta{=}10^{-5}$; this panel illustrates
+the shape of the allocation, while the audit in Fig.~\ref{fig:composite}(b)
+uses the $\varepsilon{=}2000$ operating point). Only the declared private
+components $h\in P=\{0,1,3,4,5,6\}$ may carry noise
+(Theorem~\ref{th:allocation}); the gray-shaded blocks are the task complement
+$Q$. The amplitude-only $\ell_1$ rule concentrates noise on a few high-sensitivity
+components, the quadrature GDP/RDP rules spread it more evenly, and the static
+rule adds noise to only the four selected blocks and leaves the rest untouched
+(Corollary~\ref{co:static}).}
+\label{fig:budget_split}
+\end{figure}
+
+% ---------------------------------------------------------------------
+% Fig. 2 -- the price of a certificate
+% ---------------------------------------------------------------------
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+  \pgfplotstableread{\figdatadir certificate_price.dat}\cp
+  \begin{axis}[
+      name=left, width=0.84\columnwidth, height=0.50\columnwidth,
+      xlabel={certified error floor $\tau$},
+      ylabel={Bob LPIPS},
+      xmin=0.29, xmax=0.96, ymin=0.10, ymax=1.0,
+      tick label style={font=\footnotesize},
+      label style={font=\footnotesize},
+      legend style={font=\scriptsize, draw=none, fill=none,
+                    at={(0.5,-0.24)}, anchor=north, legend columns=2,
+                    nodes={font=\scriptsize, inner sep=1pt}},
+      ymajorgrids, grid style={densely dotted, black!25},
+    ]
+    \addplot[red!70!black, mark=square*, mark size=1.2pt]
+      table[x=tau, y=lpips_aligned] {\cp};
+    \addplot[blue!70!black, mark=*, mark size=1.2pt]
+      table[x=tau, y=lpips_decoupled] {\cp};
+    \addplot[black, densely dotted, domain=0.29:0.96] {0.112};
+    \legend{{Bob, aligned $w_h$}, {Bob, decoupled $w_h$},
+            {no-protection $0.112$}}
+  \end{axis}
+  \begin{axis}[
+      name=right, at={(left.south west)}, anchor=south west,
+      width=0.84\columnwidth, height=0.50\columnwidth,
+      axis y line*=right, axis x line=none, xtick=\empty,
+      ylabel={identification error $P_e$},
+      ymin=0.25, ymax=1.15,
+      tick label style={font=\footnotesize},
+      label style={font=\footnotesize},
+    ]
+    \addplot[blue!70!black, densely dotted, very thick]
+      table[x=tau, y=certified_floor] {\cp};
+    \addplot[blue!70!black, only marks, mark=triangle*, mark size=1.4pt,
+             densely dashed]
+      table[x=tau, y=p_e_surrogate] {\cp};
+  \end{axis}
+\end{tikzpicture}
+\caption{Certificate price on the synthetic anchor, two overlap regimes. The
+two Bob LPIPS curves are read on the \emph{left} axis; the dotted
+certified-floor curve and the triangle surrogate $P_e$ are read on the
+\emph{right} axis. The LPIPS values are surrogate predictions from the default
+distortion model, not measured reconstruction distortion. When the private
+semantics \emph{are} the task (aligned, $w_h$ large, task overlap $\approx1$)
+the certified floor drives Bob's LPIPS to $0.63$--$0.87$, leaving little usable
+signal for the legitimate receiver; when the private subspace is task-null
+(decoupled) the same floor costs almost nothing until
+$\tau$ approaches the ceiling $\tau_{\max}(10^{4}){=}0.925$. The dotted line
+is the certified floor itself, which the surrogate $P_e$ must dominate
+(Theorem~\ref{th:certificate}).}
+\label{fig:certificate}
+\end{figure}
+
+% ---------------------------------------------------------------------
+% Fig. 4 -- leakage budget I_max(tau, K) sensitivity to the gallery size
+% ---------------------------------------------------------------------
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+  \pgfplotstableread{\figdatadir imax_gallery.dat}\ig
+  \begin{axis}[
+      width=\columnwidth, height=0.62\columnwidth,
+      xlabel={certified error floor $\tau$},
+      ylabel={$I_{\max}$ (bit)},
+      xmin=0.30, xmax=0.92, ymin=0,
+      tick label style={font=\footnotesize},
+      label style={font=\footnotesize},
+      legend style={font=\scriptsize, draw=none, fill=none,
+                    at={(0.98,0.98)}, anchor=north east},
+      ymajorgrids, grid style={densely dotted, black!25},
+    ]
+    \addplot[blue!55!black, dashed] table[x=tau, y=k1e3] {\ig};
+    \addplot[blue!70!black, mark=*, mark size=1.2pt] table[x=tau, y=k1e4] {\ig};
+    \addplot[orange!80!black, dotted, very thick] table[x=tau, y=k1e6] {\ig};
+    \legend{$K=10^{3}$, $K=10^{4}$, $K=10^{6}$}
+  \end{axis}
+\end{tikzpicture}
+\caption{Leakage budget $I_{\max}(\tau,K)$ of \eqref{eq:imax} versus the
+certified floor, for three identity-gallery sizes. Raising $K$ pushes the
+feasibility ceiling $\tau_{\max}(K)$ and the budget upward only
+logarithmically: the dash-dot ceiling markers are within $0.025$ of each other
+across three orders of magnitude in $K$.}
+\label{fig:imax}
+\end{figure}
+
+% ---------------------------------------------------------------------
+% Fig. 3 -- composite, one column per story
+% ---------------------------------------------------------------------
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}
+  \pgfplotstableread{\figdatadir waterfill_sweep.dat}\wf
+  \begin{axis}[
+      width=0.315\textwidth, height=0.27\textwidth,
+      xlabel={dual variable $\nu$}, ylabel={$\sigma_h^{2}/g_h$},
+      xmode=log, ymode=log, ymin=1e-4, ymax=1e8,
+      tick label style={font=\footnotesize},
+      label style={font=\footnotesize},
+      title={(a) water-filling}, title style={font=\footnotesize},
+      legend style={font=\scriptsize, draw=none, fill=none,
+                    at={(0.98,0.03)}, anchor=south east},
+    ]
+    \addplot[blue!55!black] table[x=mu, y=w_1] {\wf};
+    \addplot[blue!55!black, densely dashed] table[x=mu, y=w_8] {\wf};
+    \addplot[orange!80!black, densely dotted, very thick]
+      table[x=mu, y=w_125] {\wf};
+    \legend{$w_h$, $w_h/8$, $w_h/125$}
+  \end{axis}
+\end{tikzpicture}
+\hfill
+\begin{tikzpicture}
+  \pgfplotstableread{\figdatadir accounting_audit.dat}\ac
+  \begin{axis}[
+      width=0.315\textwidth, height=0.27\textwidth,
+      xlabel={noise-to-signal ratio (dB)}, ylabel={certified $\epsilon$},
+      ymode=log,
+      tick label style={font=\footnotesize},
+      label style={font=\footnotesize},
+      title={(b) audited $\epsilon$ at one release},
+      title style={font=\footnotesize},
+      legend style={font=\scriptsize, draw=none, fill=none,
+                    at={(0.98,0.03)}, anchor=south east},
+    ]
+    \addplot[draw=none, fill=red!7] coordinates {
+      (9.7,1)(24,1)(24,5000)(9.7,5000)(9.7,1)};
+    \node[font=\scriptsize, red!60!black, anchor=north west]
+      at (axis cs:10.2,3000) {hazard: $\mu_h\gg c$};
+    \addplot[blue!55!black, mark=triangle*, mark size=1.5pt]
+      table[x=nsr_db, y=eps_quadrature] {\ac};
+    \addplot[green!40!black, mark=square*, mark size=1.2pt]
+      table[x=nsr_db, y=eps_l1_exact] {\ac};
+    \addplot[orange!80!black, mark=*, mark size=1.2pt, densely dashed]
+      table[x=nsr_db, y=eps_l1_stylized] {\ac};
+    \legend{quadrature, $\ell_1$ exact, $\ell_1$ ampl.}
+  \end{axis}
+\end{tikzpicture}
+\hfill
+\begin{tikzpicture}
+  \pgfplotstableread{\figdatadir certificate_gap.dat}\cg
+  \begin{axis}[
+      width=0.315\textwidth, height=0.27\textwidth,
+      xlabel={certified floor $\tau$}, ylabel={$P_e^{\rm sim}-\tau$},
+      ymin=-0.05, ymax=0.62,
+      tick label style={font=\footnotesize},
+      label style={font=\footnotesize},
+      title={(c) certificate tightness},
+      title style={font=\footnotesize},
+    ]
+    \addplot[purple!60!black, mark=*, mark size=1.2pt]
+      table[x=tau, y=gap] {\cg};
+    \addplot[black, densely dotted, domain=0.42:0.93] {0};
+  \end{axis}
+\end{tikzpicture}
+\caption{(a) Water-filling charge: one latent direction, three task weights.
+Privacy is cheaper for a task-null direction because $a_h=w_h\kappa_h$
+enters the KKT solution \eqref{eq:kkt}. (b) Audit of the accounting laws on
+the \emph{same} release at the low-noise (large-$\mu$) operating point certified at
+$\varepsilon{=}2000$, $\delta{=}10^{-5}$: quadrature (GDP) sits between the
+rigorous tail bound and the amplitude-only $\ell_1$ form, the latter under-
+reporting $\varepsilon$ once $\mu_h\gg c$. The red shaded band marks this
+large-$\mu$ hazard region, where a Laplace-style $\ell_1$ composition yields an
+assessment tighter than the guarantee. (c) The surrogate $P_e$ dominates the
+certified floor everywhere: the certificate is conservative, not optimistic.}
+\label{fig:composite}
+\end{figure*}
+
+% ---------------------------------------------------------------------
+% Fig. 4 -- latent-level measurement on the released SemanticStyleGAN
+% ---------------------------------------------------------------------
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}
+  \pgfplotstableread{\figdatadir latent_utility_landscape.dat}\lu
+  \begin{axis}[
+      width=0.315\textwidth, height=0.27\textwidth,
+      ybar, bar width=3.2pt,
+      ylabel={measured $w_h$},
+      ymin=0, ymax=0.40,
+      xtick={0,...,14},
+      xticklabels={sh0,sh1,bg,skin,eye,brw,mth,nos,ear,hair,nck,clth,eyg,hat,erR},
+      x tick label style={rotate=55, anchor=east, font=\tiny},
+      tick label style={font=\footnotesize},
+      label style={font=\footnotesize},
+      title={(a) measured utility landscape}, title style={font=\footnotesize},
+    ]
+    \addplot[fill=blue!45, draw=blue!55!black] table[x=h, y=w_h] {\lu};
+  \end{axis}
+\end{tikzpicture}
+\hfill
+\begin{tikzpicture}
+  \pgfplotstableread{\figdatadir latent_sweep_examples.dat}\ls
+  \begin{axis}[
+      width=0.315\textwidth, height=0.27\textwidth,
+      xlabel={injected $\sigma_h^{2}$}, ylabel={Bob LPIPS},
+      xmode=log,
+      tick label style={font=\footnotesize},
+      label style={font=\footnotesize},
+      title={(b) per-block noise sweeps}, title style={font=\footnotesize},
+      legend style={font=\scriptsize, draw=none, fill=none,
+                    at={(0.03,0.97)}, anchor=north west},
+    ]
+    \addplot[blue!55!black, mark=*, mark size=1.2pt]
+      table[x=sigma2, y=shared0] {\ls};
+    \addplot[orange!80!black, mark=square*, mark size=1.2pt]
+      table[x=sigma2, y=skin] {\ls};
+    \addplot[green!40!black, mark=triangle*, mark size=1.5pt]
+      table[x=sigma2, y=hair] {\ls};
+    \addplot[purple!60!black, mark=diamond*, mark size=1.5pt, densely dashed]
+      table[x=sigma2, y=eyes] {\ls};
+    \legend{shared\_0, skin, hair, eyes}
+  \end{axis}
+\end{tikzpicture}
+\hfill
+\begin{tikzpicture}
+  \pgfplotstableread{\figdatadir latent_kappa.dat}\lk
+  \begin{axis}[
+      width=0.315\textwidth, height=0.27\textwidth,
+      xlabel={injected $\sigma_h^{2}$}, ylabel={residual fraction $\kappa_h$},
+      xmode=log, ymin=0, ymax=1.05,
+      tick label style={font=\footnotesize},
+      label style={font=\footnotesize},
+      title={(c) Wiener deprotector residual}, title style={font=\footnotesize},
+      legend style={font=\scriptsize, draw=none, fill=none,
+                    at={(0.97,0.97)}, anchor=north east},
+    ]
+    \addplot[blue!55!black, mark=*, mark size=1.2pt]
+      table[x=sigma2, y=kappa_empirical] {\lk};
+    \addplot[red!70!black, densely dashed, very thick]
+      table[x=sigma2, y=kappa_analytic] {\lk};
+    \legend{empirical (held-out), analytic}
+  \end{axis}
+\end{tikzpicture}
+\caption{Latent-level measurement on the released SemanticStyleGAN generator.
+(a) Measured per-block utility weights $w_h$: the perceptual cost of latent
+noise concentrates on the shared codes, hair, skin and background, while the
+facial-feature blocks (eyes, nose, ear\_r) are nearly free to protect. Block
+order: shared\_0, shared\_1, background, skin, eyes, brows, mouth, nose, ears,
+hair, neck, cloth, eye\_g, hat, ear\_r. (b) Example decode-and-LPIPS sweeps
+with the quadratic fit $\mathrm{LPIPS}\approx\mathrm{lpips}_0+w_h\sigma_h^2$;
+the eyes curve is almost flat---the generator absorbs local latent noise into
+plausible variations. (c) Residual fraction of the per-block Wiener
+deprotector on held-out codes versus the analytic prediction; the two agree to
+three decimals, so $\kappa_h$ is a measured quantity, not a fit artefact.}
+\label{fig:latent}
+\end{figure*}

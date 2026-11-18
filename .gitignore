@@ -1,0 +1,26 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Raw dataset (476 MB parquet; re-downloaded by download_data.py)
+data/
+
+# Large generated binaries
+*.npy
+*.npz
+*.pt
+*.pth
+
+# LaTeX intermediates
+theory/*.aux
+theory/*.log
+theory/*.out
+theory/*.toc
+theory/*.fls
+theory/*.fdb_latexmk
+theory/preview.pdf
+
+# Raster figures (vector PDFs and .dat sources are tracked)
+*.png

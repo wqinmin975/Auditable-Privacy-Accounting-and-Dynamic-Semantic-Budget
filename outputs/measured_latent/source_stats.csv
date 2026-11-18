@@ -1,0 +1,16 @@
+block,name,g_trace,df_clipped,d
+0,shared_0,248.65435,97.63151,512
+1,shared_1,249.35074,97.76736,512
+2,background(shape+texture),497.58095,138.08389,1024
+3,skin(shape+texture),497.68594,138.17506,1024
+4,nose(shape+texture),497.63196,138.07874,1024
+5,eye_g(shape+texture),498.56180,138.19037,1024
+6,l_eye(shape+texture),498.76152,138.24956,1024
+7,r_eye(shape+texture),498.30561,138.12646,1024
+8,l_brow(shape+texture),497.78470,138.11673,1024
+9,r_brow(shape+texture),497.64274,138.16496,1024
+10,l_ear(shape+texture),497.57170,138.00882,1024
+11,r_ear(shape+texture),498.49834,138.27470,1024
+12,mouth(shape+texture),498.63093,138.25437,1024
+13,hair(shape+texture),497.75146,138.13193,1024
+14,neck(shape+texture),497.79326,138.14996,1024
