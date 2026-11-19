@@ -1,0 +1,1725 @@
+% =====================================================================
+%  main_paper.tex -- full two-column manuscript (IEEE-style layout).
+%  Compile:  cd theory && pdflatex main_paper.tex   (twice, for refs)
+%  IEEEtran.cls is unavailable in this build, so article.cls is used with
+%  the two-column geometry; the section source drops into IEEEtran unchanged.
+% =====================================================================
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\usepackage[margin=0.75in]{geometry}
+\usepackage[colorlinks=true,linkcolor=black,urlcolor=blue,citecolor=black]{hyperref}
+
+\providecommand{\RDP}{\mathrm{RDP}}
+\providecommand{\IEEEPARstart}[2]{#1#2\ }
+\def\figdatadir{../figures/dat/}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\theoremstyle{definition}
+\newtheorem{assumption}{Assumption}
+\newtheorem{remark}{Remark}
+
+\newenvironment{IEEEkeywords}{\paragraph{Index Terms:}}{}
+
+% Fallbacks so the source also compiles without IEEEtran.cls; these macros are
+% native in IEEEtran and need no definition there.
+\providecommand{\IEEEauthorblockN}[1]{\textbf{#1}\par\smallskip}
+\providecommand{\IEEEauthorblockA}[1]{#1\par\medskip}
+
+\pgfplotsset{compat=1.18}
+
+\begin{document}
+
+\title{Auditable Privacy Accounting and Dynamic Semantic Budget Allocation
+for Differentially Private Semantic Communications%
+\thanks{This work was supported by the 2025 Science and Technology
+Innovation Capability Enhancement Project of Guangdong University of Science
+and Technology under Grant No.~GKY-2025BSQDK-46.}}
+
+\author{%
+\parbox{0.97\textwidth}{\centering\small
+\textbf{Qinmin Wang}$^{1}$, \textbf{Zixin Wang}$^{2}$,
+\textbf{Jie Peng}$^{3}$, \textbf{Fenggui Pei}$^{1}$,
+and \textbf{Zongzhong Wang}$^{4,\dagger}$\\[3pt]
+$^{1}$School of Computer Science and Artificial Intelligence, Guangdong
+University of Science and Technology, Dongguan, China\\
+$^{2}$College of Electronic and Communication Engineering, Tianjin Normal
+University, Tianjin, China\\
+$^{3}$Shenzhen Customs, Shenzhen, China\\
+$^{4}$School of Electromechanical Engineering, Guangdong University of
+Technology, Guangzhou, China\\
+Emails: $^{1}$wangqinmin@gdust.edu.cn, $^{1}$fengguipei@gmail.com;
+$^{2}$396514839@qq.com\\
+$^{3}$35743222@qq.com; $^{4}$wangzz@gdut.edu.cn\\
+ORCID: $^{1}$0009-0006-0447-0482; $^{2}$0009-0006-7807-3666\\
+$^{\dagger}$Corresponding author.}
+}
+\date{}
+\maketitle
+
+\begin{abstract}
+Decomposed latents in semantic communication retain a subject's identity, yet
+existing designs certify protection from the \emph{appearance} of the released
+noise rather than from an auditable budget, and report no adversary
+identification bound. We develop a framework that quantifies both. The
+per-component $\ell_2$ sensitivity is isolated and correct quadrature
+bookkeeping is distinguished from looser linear practices: at a low-noise
+operating point, amplitude-only $\ell_1$ accounting reports
+$\varepsilon\approx693$ where the rigorous Gaussian tail bound gives
+$\approx2441$ and the quadrature account gives $2000$ (a Gaussian-proxy
+re-pricing of a reference operating point). Two independent guarantees are
+derived. A $(\varepsilon,\delta)$-DP account via R\'enyi and Gaussian DP
+audits the release; a Gaussian worst-case mutual-information bound with Fano's
+inequality gives an identification-error floor $\tau$ with ceiling
+$\tau_{\max}(K)$. Neither implies the other. Post-processing leaves both
+unchanged, so a public invertible shaping network cannot help Bob without
+helping Eve. The induced budget program has a closed-form water-filling KKT
+solution. On a SemanticStyleGAN calibration, $65{,}536$ prior codes fix each
+block's power and sensitivity and noise sweeps fix utility weights; the
+accounting ordering, its dependence on task--private overlap, and the failure
+of amplitude-only accounting are reproduced. The perceptual score and attack
+error remain surrogates; source statistics are a pushforward of the generator
+prior, not an inversion of real identities.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Semantic communications, differential privacy, R\'enyi differential privacy,
+Gaussian differential privacy, mutual information, Fano inequality, resource
+allocation, water-filling, latent representations.
+\end{IEEEkeywords}
+
+% =====================================================================
+\section{Introduction}
+\label{sec:intro}
+% =====================================================================
+
+\IEEEPARstart{S}{emantic} communication compresses the source to a latent
+representation that carries the task-relevant meaning rather than the raw
+waveform. When the source is a face, that representation retains identity:
+the encoder separates global appearance and local part codes precisely so that
+the image can be reconstructed or edited, and the same part codes an eavesdropper
+can observe from the release. A privacy mechanism that adds noise to a subset
+of these codes therefore has to answer two questions that are usually left
+implicit: what exactly is being certified, and how much legitimate distortion
+the certificate costs.
+
+The companion scheme studied in this work~\cite{arXiv2510} perturbs a subset
+of the semantic latent codes and shapes the perturbation with a discriminator so
+that the released noise stays close to a Laplace draw while remaining
+semantically mild; this is a reasonable engineering trade-off between legitimate
+distortion and privacy. That work \emph{does} state a nominal privacy budget: it
+reports a global sensitivity $\Delta f=351.88$ and calibrates Laplace noise
+$\mathrm{Lap}(0,\Delta f/\varepsilon)$ for $\varepsilon\in\{1,5,\ldots,2000\}$.
+The gap is therefore not the absence of a parameter but the absence of an
+\emph{auditable guarantee for the noise actually released}: the discriminator
+learns a pattern that only approximates a Laplace draw, so the published
+$(\varepsilon,\delta)$ value is not a proof about the released mechanism, and no
+identification-error statement is made. This work does not replace that design;
+it supplies a framework to audit any such release under standard DP metrics and
+to check it against an identification attack. For comparison we re-price a
+\emph{Gaussian proxy} of its operating point (Section~\ref{sec:experiments});
+this quantifies how the budget should be charged if the pattern were an exact
+additive Gaussian mechanism, and is not a claim about the pattern's true
+distribution.
+
+The framework reports two complementary evaluation tools that must not be
+confused. The $(\varepsilon,\delta)$-DP system (RDP, GDP, linear tail bound)
+guarantees that adjacent records are indistinguishable. The Fano certificate
+gives an operational lower bound on an adversary's identification error,
+derived from second-order release statistics. One does not imply the other: a
+release can satisfy a DP budget yet still leak an identifiable amount, and a
+release can hold a Fano floor without satisfying DP. The two are reported side
+by side throughout.
+
+This gap is not unique to the reference scheme. Most existing designs optimize a learned
+noise-shaping network against a distortion objective; they rarely state the
+component-wise sensitivity of the decomposed latent, fix a composition law for
+the private blocks, or report a DP budget and an identification-error floor
+jointly. The present work starts from the sensitivity and the composition law
+so that the two guarantees can be priced and compared on the same release.
+
+The contributions fall into four parts.
+\emph{(1) Sensitivity and bookkeeping.} The component-wise $\ell_2$ sensitivity
+of a decomposed latent is isolated, and the three bookkeeping rules that follow
+separate a correct per-component quadrature account from the looser monolithic
+and per-component-global practices; this clarifies how a privacy budget is
+charged to individual semantic components.
+\emph{(2) Post-processing and invertible shaping.} An invertible learned shaping
+cannot raise the guarantee: post-processing leaves the privacy loss unchanged,
+so such a component is legitimate only as a keyed, key-conditional design
+element. This answers whether a learned invertible denoiser can improve Bob's
+utility without also helping Eve. The certificate below assumes $T$ invertible
+and known to the eavesdropper (the worst case); a Bob-secret $T$ is reported as
+key-conditional rather than plain $(\varepsilon,\delta)$-DP.
+\emph{(3) Identification certificate.} A Gaussian worst-case mutual-information
+bound combined with Fano's inequality certifies an identification-error floor
+for an adversary observing the release, with an explicit feasibility ceiling
+$\tau_{\max}(K)$. This supplies an operational attack-error lower bound in
+place of a marginal-distribution ``looks private'' argument.
+\emph{(4) Allocation law and DP audit.} The certificate's budget program is
+convex and admits a closed-form water-filling KKT solution with two asymptotic
+regimes; the same KKT analysis gives the noise profile induced by each standard
+accounting law, and the static-index policy is a degenerate corner of the
+program. The standard R\'enyi-DP to $(\varepsilon,\delta)$ conversion and the
+Gaussian-DP quadrature composition are derived, and the classical linear tail
+bound is audited against them.
+
+\emph{Scope of the evaluation.} The sensitivity derivation, post-processing
+theorem, Fano certificate, KKT allocation and composition rules are
+mechanism-level results that hold for any release satisfying the model
+assumptions. The quantitative calibration now rests on the released
+SemanticStyleGAN generator: the per-block source power, sensitivity, utility
+weight and shaping residual are measured on real decomposed latent codes and
+generator decodes (Section~\ref{sec:latent}), and the accounting ordering, the
+dependence on the task--private overlap, and the failure mode of the
+amplitude-only law are all reproduced on this measured calibration. The
+identification error $P_e$ and the LPIPS perceptual score remain documented
+surrogate quantities: the LPIPS is a model-based prediction on generator
+decodes, and the identification error against the Fano floor awaits an
+inverted-identity corpus with labels, as recorded in
+Section~\ref{sec:discussion}.
+
+The remainder of the paper is organised as follows.
+Section~\ref{sec:related} positions the work against semantic-privacy, DP
+accounting, and information-theoretic identification literature.
+Section~\ref{sec:setup} fixes the latent decomposition, adjacency, and notation.
+Section~\ref{sec:sensitivity} derives the component sensitivity and the
+post-processing result. Section~\ref{sec:certificate} states the Fano
+identification certificate. Section~\ref{sec:allocation} solves the budget
+allocation, and Section~\ref{sec:rdpgdp} derives the RDP/GDP composition and the
+linear tail audit. Section~\ref{sec:experiments} reports the anchor,
+image-proxy and latent-level evaluations, and Section~\ref{sec:discussion}
+collects the limitations and future work.
+
+The evaluation uses three calibrations. The first is anchored to the reference
+backbone and exercises every accounting rule end to end; the second is built
+from 500 CelebAMask-HQ faces~\cite{celebamaskhq}, with per-part variance and
+clipped range measured on real masks; the third is a latent-level calibration
+on the released SemanticStyleGAN generator, where all four calibration
+scalars (source power, sensitivity, utility weight and shaping residual) are
+measured on real decomposed codes and generator decodes. On all three, the
+price of a certificate is governed by the task--private overlap rather than by
+the reported $\varepsilon$, the amplitude-only $\ell_1$ law under-reports
+$\varepsilon$ at the low-noise (large-$\mu$) operating point, and a
+static index selection certifies no identification floor. The one remaining
+surrogate is the identification attack error, whose measurement against the
+certified floor requires an inverted-identity corpus; the stated limitations in
+Section~\ref{sec:discussion} record this explicitly.
+
+% =====================================================================
+\section{Related Work}
+\label{sec:related}
+% =====================================================================
+
+\emph{Semantic representations and their privacy.} Modern generative
+encoders decompose an image into a global structure code and part-wise local
+codes that support controllable synthesis and editing~\cite{semanticstylegan}.
+Releasing such codes over a wireless link is the standard semantic-communication
+pipeline, and the released part codes carry the identity of the subject; recent
+surveys of security and privacy in semantic communications cover the
+threat models and defence techniques~\cite{semcomsurvey_won,semcomsurvey_meng}. The
+reference semantic-adaptive DP design~\cite{arXiv2510} perturbs a subset of
+codes with Laplace noise calibrated to a stated global sensitivity
+($\Delta f=351.88$) and nominal $\varepsilon$, then shapes it with a learned
+pattern to keep Bob's distortion low; however, neither the \emph{component-wise}
+sensitivity of the decomposed code nor the composition law across private
+blocks is made explicit, and the learned released noise carries no auditable DP
+proof. Many semantic-privacy works likewise optimise a learned noise shape
+against reconstruction distortion (e.g.\ LPIPS) without evaluating an
+identification attack or its error floor. \emph{Gap:} the common deficiency is
+an auditable, block-wise account paired with an operational attack bound, not
+the mere presence of an $\varepsilon$ value. The present paper starts from the
+component sensitivity and the composition law instead.
+
+\emph{Privacy accounting.} The second reference point is the DP accounting
+literature. The Gaussian mechanism and its classical linear
+composition are standard~\cite{dwork2014}. R\'enyi DP accumulates the
+R\'enyi divergence of the Gaussian outputs quadratically and converts to
+$(\varepsilon,\delta)$ with an order-optimised bound~\cite{mironov2017rdp}.
+Gaussian DP treats the privacy-loss random variable as Gaussian and composes
+its mean and variance in quadrature~\cite{dong2022gdp}. These tools were
+developed and systematised alongside differentially private
+training~\cite{abadi2016}, where the queried statistic is a monolithic model
+gradient. They do not transfer unchanged to a decomposed semantic latent: the
+sensitivity must be charged per block, the private subset is a design choice,
+and a learned invertible post-processing sits between the release and the
+receiver. The three bounds are applied per semantic component rather than to a
+monolithic vector, and compared on the same release. Membership inference
+attacks~\cite{shokri2017} ask whether a particular record contributed to the
+release; the identification certificate here is a different $K$-ary problem,
+namely which enrolled template the released code matches.
+
+\emph{Information-theoretic privacy and identification.} The third reference
+point is the information-theoretic view of identification. Fano's inequality
+turns an information bound into a lower bound on the error of a $K$-ary
+estimator~\cite{fano}. Information-bottleneck and privacy-funnel
+formulations~\cite{privacyfunnel} trade released information against task
+utility through an optimized objective;
+the present work does not optimize such a loss; it instead produces an
+auditable, verifiable lower bound on an adversary's identification error from
+second-order release statistics, stated in the operational language the system
+cares about: the identification error an adversary cannot drive below, rather
+than a marginal distribution that looks private.
+
+% =====================================================================
+\section{System Model and Notation}
+\label{sec:setup}
+% =====================================================================
+
+\emph{Semantic latent.} A semantic encoder (here a StyleGAN generator inverted
+by a Semantic StyleGAN encoder~\cite{semanticstylegan}) maps an image to a
+latent $z\in\mathbb{R}^{n}$ decomposed into $H$ semantic components
+\begin{equation}
+ z=(z_1,\dots,z_H),\qquad z_h\in\mathbb{R}^{d_h},\qquad
+ n=\textstyle\sum_{h=1}^{H} d_h ,
+\label{eq:decomp}
+\end{equation}
+where $h$ indexes a shared (global) code or a local (part-wise) code group.
+For the reference backbone, $H_{\mathrm c}=28$ codes of dimension
+$d_h=512$, $n=14336$; our implementation groups the 13 part-wise local codes
+into 13 blocks of $d_h=1024$ plus 2 shared blocks of $d_h=512$ ($H=15$,
+$n=14336$). Grouping affects only bookkeeping; the composition formulas of
+Section~\ref{sec:rdpgdp} are additive per component and are unchanged by it.
+
+\begin{table}[h]
+\centering\footnotesize
+\setlength{\tabcolsep}{4pt}
+\caption{Core notation.}
+\label{tab:notation}
+\begin{tabular}{cp{4.4cm}}
+\toprule
+symbol & meaning \\
+\midrule
+$z_h,\,d_h$ & block latent vector and its width \\
+$g_h$ & block source power $\operatorname{Tr}\Sigma_h$ \\
+$\Delta f_h$ & block $\ell_2$ sensitivity \\
+$\sigma_h$ & released noise standard deviation \\
+$P,\,Q$ & private block set and its complement \\
+$H_{\mathrm c},\,H$ & original code count $28$, grouped block count $15$ \\
+$K,\,\tau$ & gallery size and certified error floor \\
+$\nu$ & KKT dual multiplier; marginal cost per unit leakage \\
+$\mu_h$ & per-block privacy-loss parameter $\Delta f_h/\sigma_h$ \\
+$B$ & private identity template, one of the $K$ enrolled templates \\
+$a_h=w_h\kappa_h$ & block task-cost coefficient in the allocation \\
+$\Sigma_h$ & block latent covariance matrix \\
+$c$ & linear tail constant $\sqrt{2\ln(1.25/\delta)}$ \\
+$S$ & static protected block set of size $k$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+Table~\ref{tab:notation} collects these symbols for reference. Throughout,
+$n$ denotes the total latent coordinate count and $\ln,\log_2$ denote natural
+and base-two logarithms; mutual information is reported in bits and the
+allocation program accumulates nats (Remark~\ref{rm:units}).
+
+\emph{Private subspace.} Let $P\subseteq\{1,\dots,H\}$ be the set of
+\emph{declared private} components and $Q=\{1,\dots,H\}\setminus P$ its
+complement. $P$ is an input design decision made by the system operator, not a
+quantity learned or output by the allocation algorithm: it lists the semantic
+attributes whose inference the system promises to obstruct (identity, in the
+reference task). We write $z_P=(z_h)_{h\in P}$.
+
+\begin{assumption}[Bounded coordinate range]
+\label{as:range}
+Every latent coordinate satisfies $z_{h,i}\in[a_h,b_h]$; without loss of
+generality $b_h-a_h=b-a$ for all $(h,i)$, after the $1$-Lipschitz
+normalisation applied by the encoder. This common-range normalization is a
+modeling assumption rather than a property measured on the reference encoder
+weights. If a real encoder leaves coordinate ranges heterogeneous, replacing
+the uniform $b-a$ by the measured per-coordinate range can only tighten the
+sensitivity when the true ranges are smaller; the uniform value is retained
+here so the sensitivity stays a safe upper bound, at the cost of possibly
+over-estimating $\Delta f_h$.
+\end{assumption}
+
+\begin{assumption}[Block-wise second-order structure]
+\label{as:indep}
+For each block $h$, the coordinate variances are uniformly bounded,
+$\operatorname{Var}(z_{h,i})\le g_{h,i}$ for every coordinate $i$, and the
+block source power satisfies
+$\operatorname{Tr}\Sigma_h=\sum_i\operatorname{Var}(z_{h,i})\le g_h$. No PSD
+ordering $\Sigma_h\preceq\operatorname{diag}(g_{h,i})$ is assumed; residual
+within-block and across-block correlation is charged conservatively to the
+block source power $g_h$, see Remark~\ref{rm:corr}. Correlated
+coordinates share information, which lowers the true joint mutual information;
+the bound used here ignores this reduction and reports a safe upper bound on
+the leakage. Correspondingly, the certified floor $\tau$ is a lower bound on
+the identification error that a tighter, joint-covariance certificate could
+establish: it is a safe-side certification, but it may overstate the noise cost
+and make the utility look pessimistic. The relaxation never weakens the privacy
+guarantee.
+\end{assumption}
+
+\emph{Vector-release convention.} Each block $h$ is released as a
+$d_h$-dimensional vector. The Gaussian worst-case mutual information uses the
+AM--GM (Jensen) bound
+$I(z_h;z_h+N_h)\le\tfrac{d_h}{2}\log(1+\operatorname{Tr}\Sigma_h/(d_h\sigma_h^2))$
+(Lemma~\ref{lm:maxent}), so $g_h$ denotes the block source power
+$\operatorname{Tr}\Sigma_h$; the coordinate count $d_h$ enters both this leak
+bound and the block $\ell_2$ sensitivity $\Delta f_h=\sqrt{d_h}(b-a)$.
+
+\emph{Adjacency and code-level change.} A record is one face image and its
+associated latent vector. Two records are adjacent, $D\sim D'$, if they differ
+in the private semantics of exactly one subject (replace-one); every other
+subject's code is held fixed. Formally, for records $D=(z^{(1)},\ldots,z^{(m)})$
+and $D'$ differing in subject $j$,
+\begin{equation}
+D\sim D'\iff z^{(i)}=z'^{(i)}\ \forall i\ne j
+\quad\text{and}\quad z_P^{(j)}\ne z_P'^{(j)},
+\label{eq:adjacency}
+\end{equation}
+i.e.\ adjacency replaces the identity-bearing private semantics of one subject.
+This differs from classical database DP, where adjacency flips one data
+\emph{record}; here the unit of change is one subject's identity code inside an
+otherwise fixed release, and every other subject's code is held fixed.
+The reference latent has $H_{\mathrm c}=28$ codes of dimension $512$, grouped
+into the $H=15$ blocks above; a local block concatenates two such codes. The
+replace-one adjacency changes only the codes that carry the subject's identity;
+if a concatenated block contains one changed code and one unchanged code, its
+true $\ell_2$ sensitivity is $(b-a)\sqrt{512}$, not $(b-a)\sqrt{1024}$. The
+block sensitivity used below takes the conservative worst case in which every
+coordinate of the block changes under adjacency,
+$\Delta f_h=(b-a)\sqrt{d_h}$; this over-estimates the sensitivity of a
+partially changed block by at most $\sqrt{2}$, and the resulting privacy
+accounting remains an upper bound. All quantities are per-record.
+
+\emph{Release mechanism.} The transmitter releases
+\begin{equation}
+Y=T\!\left(z+N\right),\qquad
+N_h\sim\mathcal{N}\!\left(0,\sigma_h^{2} I_{d_h}\right)\ \text{independent},
+\label{eq:mechanism}
+\end{equation}
+where $T$ is an optional transformation. The baseline scheme
+of~\cite{arXiv2510} instantiates $T$ as a learned, per-component shaping
+network trained against a discriminator, with the additional requirement that
+$T$ be invertible at the legitimate receiver. Two deployment cases must be
+distinguished. \emph{Case (i), worst case:} $T$ is invertible and known to the
+eavesdropper, so the adversary observes the same release $Y$ as Bob; this is the
+standard $(\varepsilon,\delta)$-DP setting and the case certified below.
+\emph{Case (ii), keyed receiver:} $T$ is a Bob-secret key unknown to the
+eavesdropper. Post-processing still cannot raise the guarantee, but any
+privacy statement valid only under the hidden key is \emph{key-conditional}
+privacy; under the Kerckhoffs principle it is \textbf{not plain
+$(\varepsilon,\delta)$-DP}, and it is reported as such.
+
+\emph{Adversary model.} The certificate and audit below assume the adversary
+observes one release $Y$ per record. In Case~(i) the adversary knows $T$ and
+can apply $T^{-1}$; it may hold side information about the enrolled gallery,
+and the Fano bound remains valid for any estimator that conditions on such
+side information, through data processing. The account is per-record and does
+not compose over repeated queries to the same subject; a multi-release adversary
+would require the composition rules of Section~\ref{sec:rdpgdp} applied over
+those releases, which is outside the single-release analysis here.
+
+\begin{table}[h]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\caption{Two deployment modes for the shaping transform $T$.}
+\label{tab:modes}
+\begin{tabular}{p{2.2cm}p{2.1cm}p{2.4cm}}
+\toprule
+mode & Eve knows $T$? & guarantee type \\
+\midrule
+Case (i): public/invertible & yes & standard $(\varepsilon,\delta)$-DP;
+certified below \\
+Case (ii): Bob-secret key & no & key-conditional privacy; \emph{not} plain DP
+under Kerckhoffs \\
+\bottomrule
+\end{tabular}
+\end{table}
+Table~\ref{tab:modes} summarises the two modes; only Case~(i) is certified in
+this paper, and a keyed design must be reported as key-conditional rather than
+as a standard DP guarantee.
+
+% =====================================================================
+\section{Sensitivity and Invertible Shaping}
+\label{sec:sensitivity}
+% =====================================================================
+
+\begin{proposition}[Accounting, not mechanism, inflates the noise]
+\label{pr:inflation}
+Under Assumption~\ref{as:range}, the L2 sensitivity of the whole latent and of
+a single component are
+\begin{equation}
+\Delta f_{\mathrm{glob}}=(b-a)\sqrt{{\textstyle\sum_h d_h}},
+\qquad
+\Delta f_h=(b-a)\sqrt{d_h}.
+\label{eq:sens}
+\end{equation}
+The bookkeeping ratios below are stated on the original code count
+$H_{\mathrm c}=28$; after grouping into the $H=15$ blocks of
+Section~\ref{sec:setup}, the additive composition formulas of
+Section~\ref{sec:rdpgdp} are unchanged. Two composition concepts must be kept
+separate. An \emph{amplitude-sum} account charges the sum of the per-block
+sensitivity-to-noise ratios, $\sum_h\Delta f_h/\sigma_h$, which is an $\ell_1$
+combination across blocks. A \emph{quadrature} account accumulates the squared
+ratios, $\sum_h(\Delta f_h/\sigma_h)^2$, which for equal noise equals one global
+$\ell_2$ sensitivity query; this matches the Gaussian RDP/GDP composition of
+Section~\ref{sec:rdpgdp}. Three bookkeeping rules follow. Rules (i) and (iii)
+are the loose (and, at large $\mu$, unsound) practices that this paper audits;
+their $5.29\times$ ratios below are the gap between incorrect and correct
+bookkeeping, not a gain of any noise mechanism. In all three the symbol
+$\varepsilon$ denotes a noise-to-sensitivity ratio; the DP parameter further
+requires the tail constant $c=\sqrt{2\ln(1.25/\delta)}$ of
+\eqref{eq:tailconst}, suppressed here for a clean ratio comparison.
+\begin{enumerate}
+\item[(i)] \emph{per-component with $\ell_1$ composition:}
+$\varepsilon=\sum_{h}\Delta f_h/\sigma_h$, so the smallest equalising noise
+satisfies $\sigma\ge(b-a)\textstyle\sum_h\sqrt{d_h}/\varepsilon$;
+\item[(ii)] \emph{monolithic vector query:}
+$\sigma\ge\Delta f_{\mathrm{glob}}/\varepsilon
+=(b-a)\sqrt{{\textstyle\sum_h d_h}}/\varepsilon$;
+\item[(iii)] \emph{charging every component the global sensitivity} (the
+practice implied when one reported $\varepsilon$ is reused for every code):
+$\sigma\ge H_{\mathrm c}\,\Delta f_{\mathrm{glob}}/\varepsilon$.
+\end{enumerate}
+For $d_h\equiv d$, the ratios are
+$\sigma_{\mathrm{(i)}}/\sigma_{\mathrm{(ii)}}=\sqrt{H_{\mathrm c}}$ and
+$\sigma_{\mathrm{(iii)}}/\sigma_{\mathrm{(i)}}=\sqrt{H_{\mathrm c}}$; the
+third-to-first factor is $H_{\mathrm c}$ in noise power, or
+$10\log_{10}H_{\mathrm c}$ decibel.
+\end{proposition}
+
+\begin{proof}
+(i) is the standard Gaussian-mechanism bound applied blockwise, using
+$\|\Delta z_h\|_2\le(b-a)\sqrt{d_h}$ on every adjacent pair.
+(ii) follows from $\|\Delta z\|_2^2=\sum_h\|\Delta z_h\|_2^2
+\le(b-a)^2\sum_h d_h$. (iii) substitutes $\Delta f_{\mathrm{glob}}$ for every
+summand in (i). For $d_h\equiv d$:
+$\sum_h\sqrt d=H_{\mathrm c}\sqrt d$ and
+$\sqrt{\sum_h d}=\sqrt{H_{\mathrm c}d}$, giving
+$\sigma_{\mathrm{(i)}}/\sigma_{\mathrm{(ii)}}=\sqrt{H_{\mathrm c}}$, and
+$\sigma_{\mathrm{(iii)}}/\sigma_{\mathrm{(i)}}=
+H_{\mathrm c}\sqrt{H_{\mathrm c}d}/(H_{\mathrm c}\sqrt d)=\sqrt{H_{\mathrm c}}$.
+\end{proof}
+
+\emph{Illustrative numbers.} Take $H_{\mathrm c}=28$ codes of width
+$d=512$, range $b-a=1$, and a unit budget $\varepsilon=1$ with equal noise
+across blocks. The three rules give the required common standard deviation
+$\sigma_{\mathrm{(i)}}=28\sqrt{512}\approx634$,
+$\sigma_{\mathrm{(ii)}}=\sqrt{28\cdot512}\approx120$, and
+$\sigma_{\mathrm{(iii)}}=28\sqrt{28\cdot512}\approx3352$. The gap between
+(i) and (ii) is purely a composition choice: rule (i) adds the 28 block
+amplitudes linearly, $\sum_h\sqrt d=28\sqrt d$, whereas rule (ii) combines the
+block sensitivities in quadrature, $\sqrt{\sum_h d}=\sqrt{28d}$; the square-root
+of a sum is smaller than the sum of square roots, which is why (i) demands about
+$5.29\times$ more noise amplitude than (ii). Rule (iii) asks for another
+$5.29\times$ on top of (i), and $28\times$ (14.5\,dB) the noise power of (i).
+Rule (ii) already matches the correct quadrature account.
+
+\textbf{The gain exposed by Proposition~\ref{pr:inflation} is a correction of
+bookkeeping, not a new noise mechanism: a correct monolithic vector account
+(ii) is as tight as correct per-component quadrature accounting
+(Proposition~\ref{pr:quadrature}). Any larger privacy--utility dividend must
+come from the allocation itself (Section~\ref{sec:allocation}), which is a
+separate degree of freedom.}
+
+\begin{theorem}[Post-processing and invertible shaping]
+\label{th:postproc}
+Fix the noise law in \eqref{eq:mechanism}.
+\begin{enumerate}
+\item[(i)] For every $T$ that is a (possibly randomised) function of the
+mechanism output with randomness independent of $D$, $T\circ Y$ is
+$(\varepsilon,\delta)$-DP whenever $Y$ is.
+\item[(ii)] If $T$ is invertible and $T^{-1}$ is available to the adversary,
+$T\circ Y$ provides exactly the same guarantee as $Y$: the adversary recovers
+$Y$ and the protection, if any, is due to $N$ alone.
+\item[(iii)] If $T$ depends on the private latent directly rather than on the
+release, it is part of the mechanism and its sensitivity must be re-accounted;
+$T$ may then \emph{increase} $\varepsilon$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+(i) is the post-processing inequality: for adjacent $D\sim D'$ there is a
+coupling $(Y,Y')$ of the two output laws with $\Pr[Y\neq Y']\le\delta$;
+applying the same $T$ to both sides preserves
+$\{T(Y)=T(Y')\}\supseteq\{Y=Y'\}$, hence
+$\Pr[T(Y)\neq T(Y')]\le\delta$, and on the complement the two conditional
+laws coincide, which is exactly $(\varepsilon,\delta)$-DP.
+(ii) Eve computes $T^{-1}$, so the information available to her is the
+$\sigma$-field generated by $Y$; by the data-processing inequality
+$I(z;T^{-1}(T(Y)))=I(z;Y)$ and every distinguishing advantage is unchanged.
+(iii) $T(z+\cdot)$ is a function of the data, so the pair
+$(z,T(z+N))$ is released by a mechanism whose sensitivity is governed by
+$\|T(z)-T(z')\|$, not by $\Delta f$. A per-image contrast normalisation
+$\sigma\mapsto\sigma/\widehat{s}(z)$ is an instance: the released scale factor
+$1/\widehat{s}(z)$ is computed from the record, so it leaks through
+$\widehat{s}(z)$. If $\widehat{s}(z)\in[s_{\min},s_{\max}]$ with $s_{\min}>0$,
+its scalar sensitivity is
+$|1/\widehat{s}(z)-1/\widehat{s}(z')|\le |\widehat{s}(z)-\widehat{s}(z')|/
+s_{\min}^{2}$; this quantity must be added to $\Delta f_h$ and re-accounted,
+and the normalisation cannot be treated as a fixed, privacy-neutral constant.
+If $s_{\min}=0$, the gain $1/\widehat{s}(z)$ is unbounded and no finite DP
+guarantee holds for that release.
+\end{proof}
+
+\emph{How to re-account such a scaling.} If a record-dependent gain
+$g(z)=1/\widehat{s}(z)$ is released alongside the block, it is treated as an
+additional scalar output with sensitivity
+$\Delta g=|\widehat{s}(z)-\widehat{s}(z')|/s_{\min}^{2}$; this $\Delta g$ is
+combined with the block sensitivity $\Delta f_h$ under the chosen composition
+rule (linearly for the amplitude-sum account, in quadrature for the RDP/GDP
+account), and the allocation is re-solved with the enlarged sensitivity. The
+mechanism and calibration in this paper use a record-independent per-block
+standard deviation $\sigma_h$; no per-image contrast or gain normalization is
+applied, so this extra sensitivity term is zero throughout the evaluation.
+
+Part~(ii) has a direct operational consequence: a learned
+invertible network cannot denoise a differentially private release for Bob
+alone. If Bob's decoder removes the residual noise well enough to recover a
+useful signal, the same invertible map applied by Eve recovers the same
+residual; Bob's advantage over Eve cannot come from denoising a DP release. The
+only way to evade this conclusion is a shaping $T$ that Eve does not know, and
+that key-conditional design is not standard $(\varepsilon,\delta)$-DP. The
+remaining origin of a legitimate advantage is noise whose projection onto the
+task subspace vanishes, which is the allocation problem of
+Section~\ref{sec:allocation}.
+
+\begin{remark}[The invertibility--privacy tension]
+\label{rm:tension}
+Part~(ii) imposes a constraint that applies to any deployment: DP noise cannot
+be ``learned away'' for the legitimate receiver only. The deprotection network
+at Bob is a decoder of the released signal; if it recovers $z$ up to a residual
+that is useful to Bob, the same architecture applied by Eve recovers the same
+residual. Hence Bob's advantage over Eve cannot originate in denoising a
+differentially private release. It can only originate in
+(a) a \emph{secret} shaping $T$ that Eve does not know, in which case the
+guarantee is key-conditional and must be stated as such; it is not
+$(\varepsilon,\delta)$-DP in the Kerckhoffs sense; or
+(b) noise whose projection onto the task subspace is zero, in which case Bob
+needs no denoiser and the protocol reduces to an allocation over the
+components that actually project onto the task subspace.
+The reference scheme~\cite{arXiv2510} relies on a learned noise pattern to
+keep Bob's distortion low at large $\varepsilon$. Under
+Theorem~\ref{th:postproc} and this remark, if the pattern is public its privacy
+contribution can only come from the added noise itself; a low-distortion release
+attributed to a public learned denoiser should be re-accounted under the noise
+alone, and a Bob-secret pattern should be reported explicitly as key-conditional
+rather than as plain $(\varepsilon,\delta)$-DP.
+\end{remark}
+
+% =====================================================================
+\section{A Certificate for the Private Subspace}
+\label{sec:certificate}
+% =====================================================================
+
+Data processing bounds the leakage of any decision Eve runs on the release.
+This bound converts a privacy budget into an operational error bound for the
+attack family the system cares about: identification among $K$ enrolled
+templates.
+
+\begin{lemma}[Gaussian worst case at fixed covariance]
+\label{lm:maxent}
+Let $z_h\in\mathbb{R}^{d_h}$ be the released block with covariance $\Sigma_h$
+and block source power $g_h=\operatorname{Tr}\Sigma_h$, and let
+$N_h\sim\mathcal{N}(0,\sigma_h^{2}I_{d_h})$ be independent of $z_h$. Then
+\begin{equation}
+I(z_h;z_h+N_h)\le\tfrac12\log\det\!\left(I+\frac{\Sigma_h}{\sigma_h^{2}}\right)
+\le\tfrac{d_h}{2}\log\!\left(1+\frac{g_h}{d_h\,\sigma_h^{2}}\right).
+\label{eq:maxent}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Write $Y_h=z_h+N_h$. Among random vectors with fixed covariance $\Sigma_h$, the
+Gaussian achieves the maximal differential entropy, so
+$h(z_h)\le\tfrac12\log\big((2\pi e)^{d_h}\det\Sigma_h\big)$ and
+$h(Y_h)\le\tfrac12\log\big((2\pi e)^{d_h}\det(\Sigma_h+\sigma_h^{2}I)\big)$;
+the conditional entropy is
+$h(Y_h\mid z_h)=h(N_h)=\tfrac12\log\big((2\pi e\sigma_h^{2})^{d_h}\big)$. Hence
+\begin{equation*}
+I(z_h;Y_h)=h(Y_h)-h(Y_h\mid z_h)
+\le \tfrac12\log\det\!\left(I+\frac{\Sigma_h}{\sigma_h^{2}}\right).
+\end{equation*}
+Let $\lambda_i\ge0$ be the eigenvalues of $A=\Sigma_h/\sigma_h^{2}$. By the
+arithmetic--geometric mean inequality,
+$\det(I+A)=\prod_{i=1}^{d_h}(1+\lambda_i)
+\le\big(\tfrac{1}{d_h}\sum_{i=1}^{d_h}(1+\lambda_i)\big)^{d_h}
+=\big(1+\tfrac{1}{d_h}\operatorname{Tr}A\big)^{d_h}$, which yields the second
+inequality in \eqref{eq:maxent}. (The commonly quoted $\det(I+A)\le1+\operatorname{Tr}A$
+is \emph{false} for $d_h>1$: for $A=I_2$, $\det(I+A)=4>3=1+\operatorname{Tr}A$;
+in fact $\det(I+A)\ge1+\operatorname{Tr}A$, so $1+\operatorname{Tr}A$ cannot serve
+as an upper bound.) The AM--GM bound is tight exactly when all $\lambda_i$ are
+equal (isotropic block); it loosens as the source power concentrates on fewer
+coordinates, since that lowers $\det(I+A)$ at fixed trace.
+\end{proof}
+
+\begin{theorem}[Leakage certificate and identification floor]
+\label{th:certificate}
+Grant Assumptions~\ref{as:range}--\ref{as:indep}, let the private template
+$B=f(z_P)$ take $K$ values under a \emph{uniform} prior, and let the adversary
+observe $Y=T(z+N)$ with $T$ invertible (the worst case). Define the joint
+leakage
+\begin{equation}
+I_{\mathrm{leak}}(\sigma)
+=\tfrac12\!\!\sum_{h\in P}\! d_h\log\!\left(1+\frac{g_h}{d_h\,\sigma_h^{2}}\right),
+\label{eq:leak}
+\end{equation}
+where the bit budget
+\begin{equation}
+I_{\max}(\tau)=\log_2 K-1-\tau\log_2(K-1)\quad[\text{bit}]
+\label{eq:imax}
+\end{equation}
+is the largest leakage consistent with a floor $\tau$. Here $I_{\max}$ is in
+bits ($\log_2$); the allocation program below accumulates mutual information in
+nats ($\ln$), so the budget must be converted by $B=I_{\max}\ln2$ before the
+KKT solve (Remark~\ref{rm:units}). If
+$I_{\mathrm{leak}}(\sigma)\le I_{\max}(\tau)$, then \emph{every} estimator
+$\widehat B(Y)$ has identification error $\Pr[\widehat B\neq B]\ge\tau$. This
+is an operational attack-error lower bound; it is reported in parallel with the
+$(\varepsilon,\delta)$ account of Section~\ref{sec:rdpgdp}, and the two do not
+imply one another (Remark~\ref{rm:twosystems}). The feasible floors satisfy
+$\tau<\tau_{\max}(K)=(\log_2K-1)/\log_2(K-1)$.
+The uniform prior is the strongest case: for a non-uniform prior the entropy
+term is $H(B)\le\log_2K$, and the floor weakens by $\log_2K-H(B)$. In
+deployment $H(B)$ is estimated from the enrollment prior; the uniform
+assumption here treats the gallery as balanced and gives the worst-case prior,
+so a measured prior should replace $\log_2K$ in the Fano term.
+\end{theorem}
+
+\begin{proof}
+The Markov chain $B\to z_P\to Y=T(z+N)\to z+N$ (the last step is the
+deterministic $T^{-1}$) gives, by data processing,
+$I(B;Y)\le I(z_P;z+N)$. Under the block-wise second-order
+structure of Assumption~\ref{as:indep} and Lemma~\ref{lm:maxent},
+\begin{equation}
+I(z_P;z+N)\le\tfrac12\!\!\sum_{h\in P}\! d_h\log\!\left(1+\frac{g_h}{d_h\,\sigma_h^{2}}\right)
+= I_{\mathrm{leak}}(\sigma),
+\label{eq:cert-bound}
+\end{equation}
+the right-hand side of \eqref{eq:leak}. Fano's inequality for a $K$-ary
+$B$~\cite{fano} gives
+\begin{equation}
+\Pr[\widehat B\neq B]\ge\frac{H(B\mid Y)-1}{\log_2(K-1)}
+\ge\frac{\log_2 K-I(B;Y)-1}{\log_2(K-1)},
+\end{equation}
+so $I(B;Y)\le I_{\max}(\tau)$ implies the claimed floor. Sending
+$I_{\mathrm{leak}}\downarrow0$ in \eqref{eq:imax} yields the feasibility
+condition
+\begin{equation}
+\tau<\tau_{\max}(K)=\frac{\log_2K-1}{\log_2(K-1)}.
+\label{eq:taumax}
+\end{equation}
+$\tau\ge\tau_{\max}$ would require a negative information budget, which is
+infeasible.
+\end{proof}
+
+\begin{corollary}[Numbers]
+\label{co:numbers}
+$\tau_{\max}(10^{4})=0.9248$, $\tau_{\max}(10^{6})=0.9498$, and
+$\tau_{\max}(K)\uparrow1$ only logarithmically: an arbitrarily strong
+\emph{certified} identification guarantee is unattainable for any finite
+template bank, because $H(B)=\log_2K$ is itself the currency. In our
+calibration, a floor $\tau=0.90$ with $K=10^{4}$ leaves
+$I_{\max}=0.329$\,bit, the entire budget for all private blocks jointly.
+Figure~\ref{fig:imax} reports the sensitivity of this budget to the gallery
+size: both $\tau_{\max}(K)$ and $I_{\max}$ grow only logarithmically in $K$.
+\end{corollary}
+
+\begin{remark}[Nats--bits conversion]
+\label{rm:units}
+The certificate budget $I_{\max}$ in \eqref{eq:imax} is stated in bits
+($\log_2$), whereas the allocation program of Section~\ref{sec:allocation}
+accumulates the AWGN mutual information in nats ($\ln$). The two are related
+by
+\begin{equation}
+B = I_{\max}(\tau)\,\ln 2,
+\label{eq:natsbits}
+\end{equation}
+so the $0.329$-bit budget of Corollary~\ref{co:numbers} corresponds to
+$B=0.329\ln 2\approx0.228$ nats; the implementation in the accompanying code
+applies this conversion before solving the KKT system.
+\end{remark}
+
+\begin{remark}[Certificate versus the $(\varepsilon,\delta)$ budget]
+\label{rm:twosystems}
+The paper runs two complementary accounting systems that should be reported
+side by side. The RDP/GDP/$\ell_1$ machinery of Section~\ref{sec:rdpgdp}
+translates the accounting rule and noise scale into an $(\varepsilon,\delta)$
+guarantee relative to adjacent records. The Fano certificate of
+Theorem~\ref{th:certificate} does not depend on an $(\varepsilon,\delta)$
+budget: using only the second-order quantities $(g_h,\sigma_h)$ it turns the
+noise level directly into an operational lower bound on an identification
+attack's error. The two are not substitutes. A release can be
+$(\varepsilon,\delta)$-DP with a loose $\varepsilon$ and still leave a
+measurable identifying amount in the task-relevant signal; conversely, a coarse
+release that simply drops the identity block can hold a Fano floor without
+satisfying DP under the chosen adjacency, because adjacent records may still
+differ in a noisy other block. Tables~\ref{tab:synthetic}--\ref{tab:audit}
+therefore list both the DP accounting columns and the certificate floor
+together. A like-for-like
+$(\varepsilon,\delta)$ audit of the reference scheme~\cite{arXiv2510} is not
+possible from its reported parameters: it specifies a nominal Laplace scale
+$\Delta f/\varepsilon$, but the discriminator-shaped pattern that is actually
+released is only approximately Laplace and has no proven DP guarantee. The
+comparison here is therefore a Gaussian-proxy what-if: we re-price the
+operating point as if the release were an exact additive Gaussian mechanism,
+which is a statement about the accounting law, not an audit of the learned
+pattern's true distribution.
+\end{remark}
+
+\begin{remark}[Scope of the certificate]
+\label{rm:scope}
+Theorem~\ref{th:certificate} certifies the identification family, not
+arbitrary inference: it constrains every estimator of $B$, but says nothing
+about an attribute $A$ that is not a function of $z_P$. It is a task-scoped lower bound derived from second-order statistics and is
+logically incomparable with $(\varepsilon,\delta)$-DP under the stated
+adjacency (Remark~\ref{rm:twosystems}); it is also a certificate about an
+adversary, not a prediction of any measured attack accuracy. Both systems must
+be reported, and neither may be presented as the other.
+\end{remark}
+
+\begin{remark}[Residual correlation across blocks]
+\label{rm:corr}
+Hadamard/Fischer's inequality for a PSD block matrix gives
+$\det(I+\Sigma_{\mathrm{joint}})\le\prod_h\det(I+\Sigma_{hh})$. At fixed
+marginal block variances, off-diagonal correlation decreases the joint
+determinant, hence decreases the true joint mutual information; the
+block-wise marginal bound in \eqref{eq:cert-bound} is therefore a
+\emph{conservative upper bound}, not a lower one. Residual correlation only
+widens the Hadamard gap and loosens the bound, but it does not invalidate the
+upper bound. A joint covariance estimate would be needed to tighten it; charging
+residual correlation to the block source powers $g_h$ is the conservative way to
+retain soundness without that estimate.
+\end{remark}
+
+% =====================================================================
+\section{The Allocation Law Induced by the Accounting Rule}
+\label{sec:allocation}
+% =====================================================================
+
+Write $x_h=\sigma_h^{2}$ and $a_h=w_h\kappa_h>0$, where $w_h$ is the
+calibrated sensitivity of the task loss to the block and $\kappa_h$ maps
+latent power to distortion. The transmitter solves
+\begin{equation}\begin{split}
+\min_{x_h\ge0}\ &\sum_{h=1}^{H} a_h x_h\\
+\text{s.t.}\ &\sum_{h\in P}\varphi_h(x_h)\le B,\quad
+\varphi_h(x)=\tfrac{d_h}{2}\log\!\left(1+\frac{g_h}{d_h\,x}\right),
+\end{split}\label{eq:primal}
+\end{equation}
+with $B$ the allowed leakage in nats. Noise is placed only on $P$: a block in
+$Q$ carries no obligation and no benefit, so its optimum is $x_h=0$.
+
+\begin{theorem}[Convexity, uniqueness, and closed form]
+\label{th:allocation}
+The problem \eqref{eq:primal} is a convex program with a unique optimum when
+$B\in(0,\infty)$. Let $\nu\ge0$ denote its dual multiplier. The KKT solution is
+\begin{equation}
+x_h^{\star}(\nu)=\frac{g_h}{2d_h}\left(
+\sqrt{1+\frac{2\nu\,d_h^{2}}{a_h g_h}}-1\right),\qquad h\in P,
+\label{eq:kkt}
+\end{equation}
+pinned by $\sum_{h\in P}\varphi_h(x_h^\star(\nu))=B$. The map
+$\nu\mapsto\sum_{h\in P}\varphi_h(x_h^\star(\nu))$ is strictly decreasing and
+continuous from $+\infty$ ($\nu\downarrow0$) to $0$ ($\nu\uparrow\infty$), so
+the bisection in the accompanying code is well posed and converges
+geometrically in $\log\nu$. The dual multiplier $\nu$ has a direct physical
+reading: it is the shadow price of the leakage budget, i.e.\ the marginal
+utility distortion charged for releasing one additional unit of private
+information. A tight budget drives $\nu$ up: every private block is asked for
+more noise, and the marginal cost of further leakage rises.
+\end{theorem}
+
+\begin{proof}
+$\varphi_h$ is convex on $x>0$:
+$\varphi_h'(x)=-\frac{d_hg_h}{2x(d_hx+g_h)}$ and
+$\varphi_h''(x)=\frac{d_hg_h(2d_hx+g_h)}{2x^2(d_hx+g_h)^2}>0$; the objective is
+linear, so the feasible set is convex and the program is convex. At an optimum
+the constraint is active because $B>0$ forces some $x_h<\infty$, and on the
+active set every $x_h>0$ for $h\in P$; strict convexity of $\varphi_h$ then
+gives a unique minimiser. Stationarity reads
+$a_h+\nu\,\varphi_h'(x_h)=0$, i.e.
+$a_h=\nu d_hg_h/(2x_h(d_hx_h+g_h))$, which rearranges to
+$x_h^2+(g_h/d_h)x_h-\nu g_h/(2a_h)=0$; its positive root is \eqref{eq:kkt}.
+Monotonicity: $\partial x_h^\star/\partial\nu>0$ for every $h$, and
+$\varphi_h$ is decreasing in $x$, so each summand decreases strictly; the
+limits follow from $x_h^\star\downarrow0$ and $x_h^\star\uparrow\infty$. A
+continuous strictly monotone scalar function is inverted by bisection, and
+each halving of the $\log\nu$ interval halves the bracketing width, whence
+geometric convergence. Each bisection step evaluates the KKT system over the
+$|P|$ private blocks, so the allocation costs $O(|P|\,L)$ for $L$ bisection
+steps; the later RDP conversion adds $O(|P|\,A)$ over $A$ candidate orders.
+Both are offline computations over a small block count and do not constrain the
+release rate.
+\end{proof}
+
+\begin{corollary}[Two asymptotics]
+\label{co:asymptotics}
+From \eqref{eq:kkt},
+\begin{align}
+x_h^\star&\simeq\frac{\nu d_h}{2a_h}, & x_h&\ll g_h/d_h,\label{eq:asym1}\\
+x_h^\star&\simeq\sqrt{\frac{\nu g_h}{2a_h}}, & x_h&\gg g_h/d_h.\label{eq:asym2}
+\end{align}
+The first regime is task-driven and independent of $g_h$: the noise variance
+stays below the block source power, and allocation follows the task weight
+$a_h$. This corresponds to private blocks that remain close to the task
+subspace, where Bob still needs the block and the allowed noise is held to the
+task's tolerance. The second is geometry-driven and grows only as $\sqrt{g_h}$:
+the noise variance exceeds the source power, and blocks carrying large private
+power but low task cost absorb most of the noise. A component that is cheap for
+the task but expensive to protect ($a_h$ small, $g_h$ large) absorbs most of
+the noise precisely in this second regime.
+\end{corollary}
+
+\begin{theorem}[The accounting rule dictates the shape]
+\label{th:shape}
+Replace the leakage constraint of \eqref{eq:primal} by each of the standard
+accounting laws at a common budget $\varepsilon$, and define
+\begin{equation}
+c=\sqrt{2\log(1.25/\delta)}.
+\label{eq:tailconst}
+\end{equation}
+The stationary profiles are:
+\begin{enumerate}
+\item[(a)] \emph{amplitude-only $\ell_1$ composition}
+$\sum_h c\Delta f_h/\sigma_h\le\varepsilon$:
+\begin{equation}
+x_h^{\star}\propto\Big(\frac{\Delta f_h}{a_h}\Big)^{2/3},
+\label{eq:l1shape}
+\end{equation}
+a geometric profile, strongly unequal and dominated by components with large
+sensitivity and small task weight.
+\item[(b)] \emph{quadrature composition} (RDP and GDP alike,
+Section~\ref{sec:rdpgdp}): the constraint is $\sum_h\chi_h/x_h\le B'$ with
+$\chi_h=\Delta f_h^2$ (GDP) or $\alpha\Delta f_h^2/2$ (RDP at order $\alpha$),
+so stationarity $a_h=\nu\chi_h/x_h^2$ gives
+\begin{equation}
+x_h^{\star}\propto\frac{\Delta f_h}{\sqrt{a_h}},
+\label{eq:quadshape}
+\end{equation}
+i.e.\ exponent $1/2$ in the task weight. This is the same profile as the rigorous
+tail bound at large $\mu$ (part (c)), and \emph{not} the logarithmic profile
+\eqref{eq:kkt}. The two coincide only in the geometry-driven limit $x\gg g$ of
+the log constraint, where substituting $g_h\mapsto\Delta f_h^2$ makes the
+quadratic terms agree.
+\item[(c)] \emph{rigorous tail bound} (Equation~\eqref{eq:l1exact} below):
+\begin{equation}
+2a_hx_h^{2}=\nu\big(\Delta f_h^{2}+c\Delta f_h\sqrt{x_h}\big),
+\label{eq:l1exactshape}
+\end{equation}
+so $x_h\propto\Delta f_h/\sqrt{a_h}$ when $\mu_h\gg c$ (the quadratic term
+dominates) and \eqref{eq:l1shape} when $\mu_h\ll c$ (the linear term dominates),
+with $\mu_h=\Delta f_h/\sigma_h$.
+\end{enumerate}
+The three stationary profiles are plotted side by side in
+Figure~\ref{fig:budget_split}.
+\end{theorem}
+
+\begin{proof}
+(a) The constraint is $\sum_hb_hx_h^{-1/2}\le\varepsilon$ with
+$b_h=c\Delta f_h$; it is convex since $\psi_h(x)=b_hx^{-1/2}$ has
+$\psi_h''>0$. Stationarity $a_h=\nu b_hx_h^{-3/2}/2$ gives
+$x_h=(2a_h/(\nu b_h))^{-2/3}\propto(b_h/a_h)^{2/3}$, which is
+\eqref{eq:l1shape}; $\nu$ is fixed by the budget.
+(b) GDP accumulates in quadrature,
+$\sum_h(\Delta f_h/\sigma_h)^{2}\le c_{\mathrm{GDP}}(\varepsilon)$ by
+\eqref{eq:gdpsum} inverted in $\varepsilon$; RDP accumulates
+$\sum_h\alpha\Delta f_h^2/(2\sigma_h^2)\le\varepsilon$ at the selected order
+$\alpha$ by \eqref{eq:rdpsum}. Both are of the form $\sum_h\chi_h/x_h\le B'$
+with $\chi_h\propto\Delta f_h^2$. Stationarity of
+$L=\sum_ha_hx_h+\nu(\sum_h\chi_h/x_h-B')$ gives
+$a_h-\nu\chi_h/x_h^2=0$, hence $x_h=\sqrt{\nu\chi_h/a_h}\propto\Delta f_h/\sqrt{a_h}$,
+which is \eqref{eq:quadshape}. This is \emph{not} the KKT system of the log-leakage
+program \eqref{eq:primal}: that system yields exponent $1$ only in its small-$x$
+(task-driven) regime and exponent $1/2$ in the large-$x$ (geometry-driven)
+regime, and recovers \eqref{eq:quadshape} solely when $g_h$ is replaced by
+$\Delta f_h^2$ in that limit.
+(c) The constraint \eqref{eq:l1exact} has
+$f_h(x)=\Delta f_h^2/(2x)+c\Delta f_hx^{-1/2}$; stationarity
+$a_h=\nu f_h'(x_h)$ reads
+$2a_hx_h^2=\nu\Delta f_h(\Delta f_h+c\sqrt{x_h})$, which is
+\eqref{eq:l1exactshape}. Dividing by $c\Delta f_h\sqrt{x_h}$ identifies the
+governing ratio $\mu_h/c=\Delta f_h/(c\sqrt{x_h})$: for $\mu_h\gg c$ the term
+$\Delta f_h^2$ dominates and $x_h^2\approx\nu\Delta f_h^2/(2a_h)$, giving
+$x_h\propto\Delta f_h/\sqrt{a_h}$; for $\mu_h\ll c$ the term
+$c\Delta f_h\sqrt{x_h}$ dominates and \eqref{eq:l1shape} is recovered.
+\end{proof}
+
+\begin{remark}[Two exponents, four laws, one message]
+\label{rm:exponents}
+Across the allocation laws the exponent of the task weight $a_h$ takes only two
+distinct values. The logarithmically-metered certificate program
+\eqref{eq:primal} has exponent $1$ in its task-driven (small-$x$) regime and
+$1/2$ in its geometry-driven (large-$x$) regime; the quadrature laws
+\eqref{eq:quadshape} (RDP/GDP) and the rigorous tail bound at large $\mu$
+(Theorem~\ref{th:shape}(c)) both use exponent $1/2$; the amplitude-only
+$\ell_1$ law uses $2/3$, and the rigorous tail at small $\mu$ reverts to $2/3$.
+All laws agree that noise belongs where $a_h$ is small; they differ in how
+strongly they push. The static-index policy has no exponent at all, because it
+cannot use the $a_h$ scale.
+\end{remark}
+
+\begin{table}[h]
+\centering\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\caption{Applicability of the three accounting laws to a Gaussian additive
+release.}
+\label{tab:laws}
+\begin{tabular}{p{2.5cm}p{2.6cm}p{2.6cm}}
+\toprule
+law & composition form & when it applies \\
+\midrule
+Amplitude-only $\ell_1$ & $\sum_h c\Delta f_h/\sigma_h$ & Valid only when
+$\mu_h\lesssim c$; under-reports $\varepsilon$ at large $\mu$. \\
+Quadrature (RDP/GDP) & $\sum_h(\Delta f_h/\sigma_h)^{2}$ & Correct account
+of the Gaussian additive mechanism; the recommended standard. \\
+Rigorous linear tail & $\sum_h(\mu_h^2/2+c\mu_h)$ & Valid at every $\mu_h$,
+but conservative; lies above the quadrature account. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{corollary}[Static index selection is a corner of this program]
+\label{co:static}
+The reference strategy, which protects a fixed set $S$ of $k$ codes with a common
+noise level and leaves the rest untouched, is obtained by imposing on the
+$\ell_1$ program the extra constraint
+\begin{equation}
+x_h=
+\begin{cases}
+\sigma_{\max}^{2}, & h\in S,\\
+\sigma_{\min}^{2}\approx 0, & h\notin S,
+\end{cases}
+\qquad |S|=k.
+\end{equation}
+Because the untouched private blocks are released at $\sigma_{\min}^2\approx0$, the
+$\ell_1$ leakage $\sum_h c\Delta f_h/\sigma_h$ diverges: this point is \emph{outside}
+the feasible set of the budgeted program, not a corner of it. It is therefore
+not a comparable feasible policy: it exposes the clean private blocks at zero
+cost in distortion while violating the privacy constraint outright, which is
+why its certified floor collapses to zero (Section~\ref{sec:experiments}). The
+static rule cannot outperform \eqref{eq:l1shape} on any common feasible
+budget, and it is strictly worse whenever the $\ell_1$ optimum is supported on
+more than $k$ components with unequal amplitudes, the generic case since
+$\Delta f_h$ and $a_h$ are heterogeneous. Dynamic allocation replaces the
+combinatorial choice of $S$ by a global multiplier.
+\end{corollary}
+
+% =====================================================================
+\section{RDP, Gaussian-DP, and Their Composition}
+\label{sec:rdpgdp}
+% =====================================================================
+
+\emph{Gaussian mechanism, one block.} Let $q(z)=z$ have sensitivity
+$\Delta_h=\Delta f_h$ on the block. For neighbouring $z,z'$ with
+$\delta_h=z'-z$, $\|\delta_h\|_2\le\Delta_h$, the laws of $Y_h$ are
+$\mathcal{N}(z_h,\sigma_h^2I)$ and $\mathcal{N}(z_h',\sigma_h^2I)$. The
+Rényi divergence of order $\alpha>1$ between two such Gaussians is
+\begin{equation}
+\begin{aligned}
+D_\alpha\!\left(\mathcal{N}(z_h,\sigma_h^2I)\,\|\,
+\mathcal{N}(z_h',\sigma_h^2 I)\right)
+&=\frac{\alpha\|\delta_h\|^2}{2\sigma_h^2}
+\le\frac{\alpha\Delta f_h^{2}}{2\sigma_h^{2}}\\
+&=:\varepsilon_h^{\RDP}(\alpha),
+\end{aligned}
+\label{eq:rdpblock}
+\end{equation}
+obtained by evaluating the $\alpha$-th moment of the density ratio under the
+shifted law.
+
+\emph{Composition (RDP).} Rényi divergence adds over independent mechanism
+outputs~\cite{mironov2017rdp}; the block releases are independent by
+\eqref{eq:mechanism}, so
+\begin{equation}
+\varepsilon^{\RDP}(\alpha)=\sum_{h\in P}\varepsilon_h^{\RDP}(\alpha)
+=\frac{\alpha}{2}\sum_{h\in P}\frac{\Delta f_h^{2}}{\sigma_h^{2}}.
+\label{eq:rdpsum}
+\end{equation}
+Equation~\eqref{eq:rdpsum} is the quadrature, not the $\ell_1$, accumulation,
+and grouping of codes does not change it. The composition order matters: the
+per-block RDP divergences are summed first at each order $\alpha$, and the
+single summed RDP value is then converted to $(\varepsilon,\delta)$; one does
+not convert each block to an $(\varepsilon,\delta)$ pair and add the resulting
+$\varepsilon$ values, which would reintroduce a loose linear tail account. The
+GDP account below follows the same order: the per-block $\mu_h$ are combined in
+quadrature first, and the single total $\mu_{\mathrm{tot}}$ is then inverted
+through the Gaussian privacy-loss law.
+
+\emph{Conversion to $(\varepsilon,\delta)$.} An
+$(\alpha,\varepsilon^{\RDP})$-RDP mechanism is
+$(\varepsilon^{\RDP}+\log(1/\delta)/(\alpha-1),\delta)$-DP for every
+$\alpha>1$~\cite{mironov2017rdp}; optimising over $\alpha$,
+\begin{equation}
+\varepsilon(\delta)=\min_{\alpha>1}\left[
+\frac{\alpha}{2}\sum_{h\in P}\frac{\Delta f_h^{2}}{\sigma_h^{2}}
++\frac{\log(1/\delta)}{\alpha-1}\right].
+\label{eq:rdpconv}
+\end{equation}
+The bracket is convex in $\alpha$, so the minimiser is unique; the
+implementation in the accompanying code searches over an order grid. The
+conversion is conservative: tighter conversions are available in the
+hypothesis-testing privacy literature, and \eqref{eq:rdpconv} is kept so that
+all reported $\varepsilon$ are upper bounds.
+
+\emph{Privacy loss random variable and Gaussian-DP.} For one block the privacy
+loss of an outcome $y$ is
+\begin{equation}
+L_h(y)=\log\frac{p_{z_h}(y)}{p_{z_h'}(y)}
+=\frac{\|\delta_h\|^{2}-2\langle y-z_h,\delta_h\rangle}{2\sigma_h^{2}},
+\label{eq:loss}
+\end{equation}
+using $p_{z'}(y)=p_z(y-\delta_h)$. Under $y\sim p_{z_h}$,
+$u=y-z_h$ has mean zero and covariance $\sigma_h^2I$, so
+\begin{equation}
+L_h\sim\mathcal{N}\!\left(\frac{\mu_h^{2}}{2},\,\mu_h^{2}\right),
+\qquad \mu_h:=\frac{\Delta f_h}{\sigma_h}.
+\label{eq:gdpblock}
+\end{equation}
+The summands are independent, so two Gaussians compose into a Gaussian:
+\begin{equation}\begin{split}
+L&=\sum_{h\in P}L_h
+\sim\mathcal{N}\!\left(\frac{\mu_{\mathrm{tot}}^{2}}{2},
+\mu_{\mathrm{tot}}^{2}\right),\\
+\mu_{\mathrm{tot}}&=\sqrt{\sum_{h\in P}\mu_h^{2}}
+=\sqrt{\sum_{h\in P}\frac{\Delta f_h^{2}}{\sigma_h^{2}}}.
+\end{split}\label{eq:gdpsum}
+\end{equation}
+This is Gaussian differential privacy~\cite{dong2022gdp}. For the Gaussian
+mechanism the privacy-loss random variable is itself Gaussian, so this GDP
+characterization is \emph{exact} for the additive Gaussian release rather than
+an approximation; the quadrature composition below inherits that exactness.
+The conservative
+one-sided form used in the code and in all tables is
+\begin{equation}
+\delta(\varepsilon)\le\Phi\!\left(-\frac{\varepsilon}{\mu_{\mathrm{tot}}}
++\frac{\mu_{\mathrm{tot}}}{2}\right),
+\label{eq:gdpdelta}
+\end{equation}
+whose inverse is
+$\varepsilon(\delta)=\mu_{\mathrm{tot}}(\mu_{\mathrm{tot}}/2-\Phi^{-1}(\delta))$.
+The exact two-sided expression subtracts the second tail term; it differs
+from \eqref{eq:gdpdelta} only for $\varepsilon$ of order
+$\mu_{\mathrm{tot}}^2/2$, where both forms are already vacuous, so
+\eqref{eq:gdpdelta} is the standard choice for tables.
+
+\emph{Linear composition (basic accounting).} The classical Gaussian-mechanism
+tail bound, composed linearly~\cite{dwork2014}, keeps the quadratic privacy
+term:
+\begin{equation}
+\varepsilon_{\ell_1}(\delta)=\sum_{h\in P}\Big(\mu_h^{2}/2+c\,\mu_h\Big),
+\qquad \mu_h=\frac{\Delta f_h}{\sigma_h},
+\label{eq:l1exact}
+\end{equation}
+with $c$ of \eqref{eq:tailconst}. The amplitude-only truncation
+$\sum_hc\Delta f_h/\sigma_h$ drops the $\mu_h^{2}/2$ term; it is the law that
+Laplace-style accounting effectively assumes. The dropped term is not cosmetic.
+At the low-noise (large-$\mu$) operating point of the reference
+scheme~\cite{arXiv2510},
+$\Delta f_h\approx66$--$100$ (representative $\approx91$), $\sigma_h\approx3.6$, hence $\mu_h\approx24.1$ (RMS) and
+$|P|=6$, and $\mu_h\gg c=4.84$;
+\eqref{eq:l1exact} is then dominated by $\mu_h^2/2$. On the
+synthetic anchor at the release certified at quadrature $\varepsilon=2000$,
+$\delta=10^{-5}$, with $|P|=6$ and $\mu_h\approx24.1$, the amplitude-only
+truncation reports $\varepsilon\approx692.6$, while
+\eqref{eq:l1exact} reports $\approx2440.5$; the amplitude-only figure
+\emph{under-reports} the loss and is unsoundly tighter-looking than the Gaussian
+tail account. The same audit on
+the measured proxy (Table~\ref{tab:audit}) gives $701.1$ and $2448.9$, with the
+same ordering; the three abstract figures $693/2441/2000$ are the anchor point,
+and $2000$ is the quadrature certificate they are priced against.
+Figure~\ref{fig:composite}(b) plots this audit over the whole range. This is
+the limitation of a ``the noise resembles Laplace, hence
+$\varepsilon=\Delta f/s$'' argument: the ratio form is dimensionally plausible
+but, for a Gaussian release, omits the quadratic privacy-loss term. Applying a
+Laplace-style $\ell_1$ composition to this
+Gaussian release at a low-noise operating point yields an assessment that looks
+tighter than the mechanism actually guarantees; the reported budget should
+therefore be read against the quadrature or tail account, not the amplitude-only
+ratio.
+
+\begin{proposition}[Quadrature composition is the correct Gaussian account]
+\label{pr:quadrature}
+For the additive Gaussian release of \eqref{eq:mechanism}, the correct
+privacy-loss composition is the quadratic (orthogonal) combination
+$\sum_h\mu_h^{2}$, not a linear $\ell_1$ sum $\sum_h\mu_h$. Formally, for any
+$\{\sigma_h\}$ and any $P$,
+$\sum_{h\in P}\Delta f_h^{2}/\sigma_h^{2}
+\le\big(\sum_{h\in P}\Delta f_h/\sigma_h\big)^{2}$, with equality iff at most
+one summand is non-zero. At the divergence level $\sum\mu_h^2\le(\sum\mu_h)^2$, but after conversion to
+$(\varepsilon,\delta)$ the quadratic privacy-loss term $\mu_h^2/2$ makes the
+quadrature $\varepsilon$ larger than the amplitude-only figure at low noise
+(Table~\ref{tab:audit}): quadrature is the \emph{correct} account, not a
+numerically smaller one. It is the accumulation law that matches the actual
+additive-noise mechanism of \eqref{eq:mechanism}.
+\end{proposition}
+
+\begin{proof}
+The inequality is $\|\cdot\|_2^2\le\|\cdot\|_1^2$ on the vector
+$(\Delta f_h/\sigma_h)_{h\in P}$, with equality iff the vector is supported on
+a single coordinate. The last claim is \eqref{eq:rdpsum}--\eqref{eq:gdpsum}
+computed from the likelihood ratio of the actual release.
+\end{proof}
+
+\input{../figures/figures_pgfplots}
+
+% =====================================================================
+\section{Experimental Validation}
+\label{sec:experiments}
+% =====================================================================
+
+\subsection{Implementation and Calibration}
+
+The closed-form allocator, the four accounting solvers, the audit routines and
+the unit tests accompany the paper; a one-command script reproduces every
+number below. The KKT multiplier is found by Brent's root finder on $\log_{10}\nu\in[-18,18]$
+(max.\ 200 iterations); the $(\varepsilon,\delta)$ conversion searches 140 RDP orders.
+Three calibrations are used. The \emph{synthetic anchor} is anchored to the
+reference backbone's clipped range and exercises every rule end to end; the
+\emph{measured proxy} is built from 500 CelebAMask-HQ faces~\cite{celebamaskhq};
+and the \emph{measured latent} calibration of Section~\ref{sec:latent} is built
+on the released SemanticStyleGAN generator. The HF parquet
+copy provides aligned 1024$\times$1024 images and 512$\times$512 part masks
+(19 classes); the masks are upsampled nearest-neighbour to the image size, and
+the 19 classes are grouped into the 15 blocks of Section~\ref{sec:setup}. Per
+block we measure the within-part pixel variance $\bar g_h$ and the mean 0.5\%--
+99.5\% clipped intensity range; the 0.5\%/99.5\% quantiles trim the extreme
+pixels so the range is not set by a handful of outliers. Across the 500 images
+the per-part pixel variance lies in $[0.025,0.066]$ and the clipped range in
+$[0.67,0.90]$; the per-block values are listed in the accompanying
+\texttt{part\_stats.csv}. The trace proxy is $g_h=d_h\bar g_h$, and the
+sensitivity is $\Delta f_h=\sqrt{d_h}\,\mathrm{range}_h$.
+
+For the image-proxy calibration, the remaining quantities are surrogates, not
+measurements on a trained encoder. The utility weight $w_h$ and residual
+fraction $\kappa_h$ are seeded defaults (seed~0): $w_h$ is scaled by an
+identity weight and perturbed by an $8\%$ Gaussian clipped to $[0.8,1.2]$, and
+$\kappa_h$ by a $5\%$ Gaussian clipped to $[0.85,1.10]$ and then to
+$[0.2,0.98]$. The LPIPS distortion and the attack error $P_e$ are
+model-surrogate predictions derived from these defaults; they are not encoder
+latent measurements, and no multi-seed mean or variance is reported because
+the surrogate curves are generated under the single seed~0 calibration. These
+proxy values are superseded by the latent-level measurement of
+Section~\ref{sec:latent}, where $w_h,\kappa_h$ are measured on the released
+generator; only $P_e$ remains a surrogate there.
+
+\emph{Reproducibility.} The pipeline scripts take the data parquet, sample
+count $n$, target floor $\tau$, budget $\varepsilon$, $\delta$, gallery size
+$K$, static count $k$, and output directory as inputs; they write the per-part
+statistics, calibration metadata, allocation summaries, PGFPlots `.dat'
+sources, and the validation figures. A separate latent pipeline loads the
+released SemanticStyleGAN CelebAMask-HQ checkpoint, samples prior codes through
+the mapping network, runs the per-block noise sweeps, and writes the measured
+calibration of Section~\ref{sec:latent}; the generator's fused CUDA operators
+fall back to their native CPU kernels, so the full latent calibration
+reproduces on CPU, and no measured quantity is hard-coded. The one measurement
+that still requires a GPU-scale environment is the identification attack:
+inverting a labelled identity corpus through the generator and training the
+recognition head to produce a measured $P_e$.
+
+\subsection{Certificate Price versus Task Overlap}
+
+Table~\ref{tab:synthetic} reports the five allocators on the synthetic anchor
+in the task-decoupled regime ($\tau=0.90$, $K=10^{4}$, $\varepsilon=100$,
+$\delta=10^{-5}$). The MI certificate meets the 0.33-bit leakage budget and
+holds the 0.900 floor; the RDP, GDP and basic solvers trade the same budget
+for much larger Bob distortion; the static $k=4$ index selection keeps Bob's
+LPIPS low but leaks $5.5\times10^{3}$ bit and certifies no floor at all.
+
+\begin{table}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\caption{Synthetic anchor, task-decoupled ($\tau{=}0.90$, $K{=}10^{4}$,
+$\varepsilon{=}100$, $\delta{=}10^{-5}$). The source powers and sensitivities
+are anchored to the reference backbone's clipped range; LPIPS, residual
+fraction and attack error are surrogate predictions. ``leak.'' is the certified
+leaked mutual information in bits; ``floor'' is the Fano identification-error
+floor; the GDP column lists the total privacy-loss parameter and the certified
+$\varepsilon$.}
+\label{tab:synthetic}
+\begin{tabular}{lcccc}
+\toprule
+scheme & LPIPS$^\dagger$ & leak. (bit) & floor & GDP ($\mu_{\mathrm{tot}},\varepsilon$) \\
+\midrule
+MI certificate & 0.240 & 0.329 & 0.900 & 70.1,\,2755 \\
+RDP & 0.793 & 0.007 & 0.924 & 10.13,\,94.5 \\
+GDP & 0.788 & 0.007 & 0.924 & 10.51,\,100.0 \\
+$\ell_1$ basic & 0.853 & 0.006 & 0.924 & 8.44,\,71.6 \\
+static $k{=}4$ & 0.146 & $5.5\times10^{3}$ & 0.000 & --- \\
+\bottomrule
+\end{tabular}
+$^\dagger$surrogate.
+\end{table}
+
+Table~\ref{tab:measured} reports the measured-proxy calibration on two
+scenarios. In the reconstruction scenario the private semantics are the task
+(task overlap 1.000, $|P|=15$); in the task-decoupled scenario the private
+blocks are task-null (overlap 0.013, $|P|=6$). Under the same 0.900 floor the
+decoupled scenario incurs a smaller proxy distortion than reconstruction
+(0.771 versus 0.862), so the price of a certificate is set by the
+task--private overlap, not by the reported $\varepsilon$. Because $w_h,\kappa_h$
+are surrogates, these LPIPS magnitudes are not measured distortions and should
+not be quoted against a no-protection baseline; the reliable readings are the
+floor and the relative overlap ordering. Figure~\ref{fig:certificate}
+plots the same price--floor curve for both calibrations.
+
+The overlap determines the certificate price qualitatively. When the private
+semantics project onto the same subspace the task needs, the noise that
+protects identity also sits on the task coordinates: Bob's distortion rises
+unavoidably, because there is no way to obscure the private information without
+degrading the task signal. When the private blocks are task-null, they carry
+no information Bob needs, so they can be protected with little damage to the
+released task output; the decoupled scenario therefore reaches the same
+0.900 floor at a smaller proxy distortion. The measured overlap values
+(1.000 versus 0.013) encode this geometry, and the ordering holds on both
+calibrations.
+
+\emph{Gallery-size ablation.} Figure~\ref{fig:imax} sweeps the gallery size
+$K\in\{10^{3},10^{4},10^{6}\}$ against the feasible floor $\tau$. Both the
+ceiling $\tau_{\max}(K)$ and the budget $I_{\max}(\tau,K)$ grow only
+logarithmically in $K$: enlarging the template bank does not buy a strong
+certified floor for free, and a high error floor still requires a very small
+leakage budget.
+
+\begin{table}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\caption{Measured proxy, 500 CelebAMask-HQ faces ($\tau{=}0.90$, $K{=}10^{4}$).
+$g_h,\Delta f_h$ measured; $w_h,\kappa_h,P_e$ surrogate; LPIPS values are
+proxy predictions, not measured distortions. ``leak.'' is the certified leaked
+mutual information in bits; ``floor'' is the Fano identification-error floor.}
+\label{tab:measured}
+\begin{tabular}{lccccc}
+\toprule
+scenario & overlap & $|P|$ & MI LPIPS$^\dagger$ & leak. (bit) & floor \\
+\midrule
+reconstruction & 1.000 & 15 & 0.862 & 0.329 & 0.900 \\
+task-decoupled & 0.013 & 6 & 0.771 & 0.329 & 0.900 \\
+\bottomrule
+\end{tabular}
+$^\dagger$surrogate.
+\end{table}
+
+\subsection{Audit of the Accounting Laws}
+
+Figure~\ref{fig:composite}(b) audits the three composition laws on the same
+release over the noise-to-signal range. At the low-noise (large-$\mu$)
+operating point certified at quadrature $\varepsilon=2000$, $\delta=10^{-5}$,
+the synthetic anchor gives $\mu_h\approx24.1$, $|P|=6$: the amplitude-only
+$\ell_1$ form reports $\approx692.6$, the rigorous tail bound reports
+$\approx2440.5$, and quadrature sits at 2000. Table~\ref{tab:audit} reproduces
+the ordering on the measured proxy, adding the order-optimised RDP conversion
+as a third conservative bound: the amplitude-only law under-reports
+$\varepsilon$ once $\mu_h\gg c$, the RDP conversion sits slightly above
+quadrature, and the exact tail bound stays above quadrature in both scenarios.
+The divergence is regime-dependent: at the high-noise (small-$\mu$) end the
+amplitude-only truncation approaches the \emph{rigorous linear tail}
+(both dominated by the linear $c\mu_h$ term), yet it remains larger than
+quadrature by a factor of about $\sqrt{|P|}$ (equal-$\mu$ case); the large gap
+reported above appears only in the low-noise, large-$\mu$ regime. The red band in
+Figure~\ref{fig:composite}(b) marks this regime, which corresponds to the
+low-noise operating point a wiretap scheme prefers for Bob's fidelity; it is
+precisely this high-fidelity regime where the amplitude-only audit understates
+the released loss.
+
+\begin{table}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3.0pt}
+\caption{Audit at quadrature $\varepsilon{=}2000$, $\delta{=}10^{-5}$.
+Columns: $\bar\mu_h$ is the mean per-block privacy-loss parameter;
+``amplitude'' is the amplitude-only $\ell_1$ truncation; ``RDP'' is the
+order-optimised RDP to $(\varepsilon,\delta)$ conversion; ``quadrature'' is the
+exact Gaussian-DP account; ``exact tail'' keeps the full linear bound
+$\sum_h(\mu_h^2/2+c\mu_h)$. The exact tail lies above the GDP quadrature
+account because it retains the per-block linear $c\mu_h$ term and does not use
+the exact Gaussian privacy-loss distribution; the tail also sums per-block
+$\mu_h^2/2+c\mu_h$, so it cannot be reconstructed from the reported mean
+$\bar\mu_h$ alone.}
+\label{tab:audit}
+\begin{tabular}{lccccc}
+\toprule
+scenario & $\bar\mu_h$ & amplitude & RDP & quadrature & exact tail \\
+\midrule
+reconstruction & 15.0 & 1089.2 & 2037.8 & 2000 & 2837.0 \\
+task-decoupled & 24.1 & 701.1 & 2037.8 & 2000 & 2448.9 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Static Index Selection}
+
+The static $k=4$ rule selects, by the score $\Delta f_h/a_h$ (high sensitivity
+at low task cost), the four cheapest components to protect and leaves the rest
+untouched. Because the corrected certificate bound of Lemma~\ref{lm:maxent}
+accounts for all $d_h$ coordinates of each cleanly released block, the leaked
+mutual information is enormous: $5.5\times10^{3}$ bit on the synthetic anchor,
+$7.7\times10^{3}$ bit in the measured decoupled scenario and $7.8\times10^{4}$ bit
+in reconstruction (all far above the $0.33$-bit budget), and the Fano floor is
+zero in every case. The defect is structural: only the $k=4$
+selected private blocks receive noise, while every other private block is
+released clean and still carries its identity signal. The certificate cannot
+observe these untouched blocks, so their leakage accumulates without any
+constraint and the identification floor drops to zero. As
+Corollary~\ref{co:static} predicts, the
+static rule is a degenerate corner of the allocation program: it looks cheap
+only because the certificate cannot see what it leaves unprotected. Earlier
+reports in which such a static rule looks adequate judged reconstruction
+distortion alone; without an identification-error floor, the cleanly released
+private blocks are invisible to that metric, which masks the identity leak.
+
+\subsection{Measured Quantities versus Surrogates}
+
+The measured and surrogate quantities are separated explicitly. On the
+image-proxy calibration, the block source power $g_h\approx d_h\bar g_h$
+($\bar g_h$ the within-part pixel variance, $d_h$ the code width) and
+$\Delta f_h$ (part clipped range) are computed from real masks, while $w_h$,
+$\kappa_h$ and $P_e$ are default surrogates. The latent-level calibration of
+Section~\ref{sec:latent} replaces all of $g_h,\Delta f_h,w_h,\kappa_h$ by
+measurements on the released generator; the only quantity still awaiting a
+measurement is the identification error $P_e$, which requires an
+inverted-identity corpus with labels and a recognition head.
+
+\subsection{Latent-Level Measurement on the SemanticStyleGAN Backbone}
+\label{sec:latent}
+
+\emph{Protocol.} The backbone is the released SemanticStyleGAN
+CelebAMask-HQ $512{\times}512$ checkpoint~\cite{semanticstylegan,celebamaskhq}.
+The decomposed code follows the paper layout: two shared codes of width
+$d_h=512$ and thirteen local part codes of width $d_h=1024$ (28 latent slots
+of 512 coordinates), with block semantics background, skin, eyes, brows,
+mouth, nose, ears, hair, neck, cloth, eye\_g, hat, ear\_r as ordered by the
+dataset preprocessing. The source statistics are exact prior statistics:
+$65{,}536$ $w$-codes drawn from the latent prior are propagated through the
+real mapping network, giving the per-block source power $g_h$ and the
+0.5\%/99.5\% clipped sensitivity $\Delta f_h$ of the released distribution;
+this is a pushforward of the generator prior, not an inversion of real
+identities. The utility weights are measured by a per-block noise sweep: for
+each block $h$ and each $\sigma_h^2$ on a six-level grid, noise is added to
+$N=16$ codes in block $h$ only, the generator decodes back to images, and
+LPIPS~\cite{lpips} against the clean decode is fitted to
+$\mathrm{LPIPS}\approx\mathrm{lpips}_0+w_h\sigma_h^2$. The residual fraction
+$\kappa_h$ is the fitted residual slope of a per-block linear-MMSE (Wiener)
+deprotector whose covariance is measured on the same $65{,}536$ codes; the
+empirical residual on 1024 held-out codes matches the analytic Wiener
+prediction to three decimals. All runs execute on CPU, with the generator's
+fused CUDA operators falling back to their native CPU kernels.
+
+\emph{Measured scalars.} Table~\ref{tab:latent_scalars} lists the fifteen
+measured blocks. The per-coordinate standard deviation is $\approx0.697$
+uniformly across blocks ($g_h\approx248.6$--$249.4$ for $d_h=512$ and
+$\approx497.6$--$498.8$ for $d_h=1024$), while the clipped per-coordinate
+range is $\approx4.32$ against the Gaussian prediction $3.59$: the mapping
+network's output is heavier-tailed than Gaussian, so the clipped sensitivity
+($\Delta f_h\approx97.6$--$97.8$ at $d_h=512$ and $\approx138.0$--$138.3$ at
+$d_h=1024$; global sensitivity $\approx517$) exceeds what a Gaussian-range
+assumption would certify. The measured $\kappa_h\approx0.24$ is essentially
+flat across blocks, as the Wiener residual depends mainly on the local
+signal-to-noise geometry. Figure~\ref{fig:latent} plots the utility
+weights, example sweep curves with their quadratic fits, and the empirical
+versus analytic $\kappa$ curves.
+
+\begin{table}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\caption{Measured per-block scalars on the released SemanticStyleGAN
+generator. $g_h,\Delta f_h$: $65{,}536$ prior codes through the real mapping
+network; $w_h$: decode-and-LPIPS noise sweep ($N{=}16$ codes per block, six
+noise levels); $\kappa_h$: fitted Wiener residual slope. The image-space
+proxy of Table~\ref{tab:measured} is retained as an offline fallback.}
+\label{tab:latent_scalars}
+\begin{tabular}{lccccc}
+\toprule
+block & $d_h$ & $g_h$ & $\Delta f_h$ & $w_h$ & $\kappa_h$ \\
+\midrule
+shared\_0  & 512  & 248.65 & 97.63  & 0.2713 & 0.242 \\
+shared\_1  & 512  & 249.35 & 97.77  & 0.3420 & 0.241 \\
+background & 1024 & 497.58 & 138.08 & 0.1702 & 0.242 \\
+skin       & 1024 & 497.69 & 138.18 & 0.1741 & 0.241 \\
+eyes       & 1024 & 497.63 & 138.08 & 0.0097 & 0.242 \\
+brows      & 1024 & 498.56 & 138.19 & 0.0159 & 0.243 \\
+mouth      & 1024 & 498.76 & 138.25 & 0.0112 & 0.241 \\
+nose       & 1024 & 498.31 & 138.13 & 0.0088 & 0.242 \\
+ears       & 1024 & 497.78 & 138.12 & 0.0170 & 0.242 \\
+hair       & 1024 & 497.64 & 138.16 & 0.2753 & 0.241 \\
+neck       & 1024 & 497.57 & 138.01 & 0.0281 & 0.241 \\
+cloth      & 1024 & 498.50 & 138.27 & 0.0424 & 0.241 \\
+eye\_g     & 1024 & 498.63 & 138.25 & 0.0117 & 0.243 \\
+hat        & 1024 & 497.75 & 138.13 & 0.0276 & 0.241 \\
+ear\_r     & 1024 & 497.79 & 138.15 & 0.0078 & 0.240 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\emph{Allocation on the measured calibration.}
+Table~\ref{tab:latent_alloc} reruns the five allocators on the measured
+scalars ($\tau{=}0.90$, $K{=}10^{4}$, $\varepsilon{=}100$,
+$\delta{=}10^{-5}$) in the two scenarios of Table~\ref{tab:measured}. The
+identity-relevant private set (the two shared codes together with skin,
+eyes, brows, mouth and nose, $|P|{=}7$) overlaps the LPIPS-bearing subspace
+substantially: the measured task--private overlap is $0.590$, far above the
+$0.013$ of the image proxy, because the perceptual utility concentrates on
+the shared, hair, skin and background blocks that also carry identity. Under
+an LPIPS task the certificate is therefore not cheap: Bob's predicted
+distortion saturates near the model ceiling in both scenarios. The reliable
+readings are the measured $w_h,\kappa_h$ themselves, the floors, and the
+noise budget: moving from reconstruction to the decoupled private set cuts
+the total injected noise-to-signal mass from $49.7$ to $11.0$ ($4.5\times$)
+and raises the allocation sparsity from $0.123$ to $0.249$. The static
+$k{=}4$ rule again fails structurally, leaking $9.7\times10^{4}$ bit in
+reconstruction and $2.9\times10^{4}$ bit in the decoupled scenario with a zero
+floor.
+
+\begin{table}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\caption{Measured latent calibration ($\tau{=}0.90$, $K{=}10^{4}$,
+$\varepsilon{=}100$, $\delta{=}10^{-5}$). All four scalars measured on the
+released generator; LPIPS$^\dagger$ is the saturating prediction
+$\mathrm{lpips}_0+0.75\,S/(0.75+S)$ driven by the measured sweep and hits its
+$0.86$ ceiling at $\tau{=}0.9$ in both scenarios. ``leak.'' is the certified
+leaked mutual information in bits; ``floor'' is the Fano identification-error
+floor.}
+\label{tab:latent_alloc}
+\begin{tabular}{llccc}
+\toprule
+scenario & scheme & LPIPS$^\dagger$ & leak. (bit) & floor \\
+\midrule
+reconstruction & MI certificate & 0.862 & 0.329 & 0.900 \\
+(overlap 1.000, & RDP            & 0.861 & 1.931 & 0.779 \\
+$|P|{=}15$)    & GDP            & 0.861 & 2.077 & 0.768 \\
+               & $\ell_1$ basic & 0.862 & 0.634 & 0.877 \\
+               & static $k{=}4$ & 0.832 & $9.7\times10^{4}$ & 0.000 \\
+\midrule
+task-decoupled & MI certificate & 0.861 & 0.329 & 0.900 \\
+(overlap 0.590, & RDP           & 0.857 & 1.931 & 0.779 \\
+$|P|{=}7$)     & GDP            & 0.857 & 2.076 & 0.769 \\
+               & $\ell_1$ basic & 0.860 & 1.367 & 0.822 \\
+               & static $k{=}4$ & 0.832 & $2.9\times10^{4}$ & 0.000 \\
+\bottomrule
+\end{tabular}
+$^\dagger$saturating surrogate scale; measured inputs.
+\end{table}
+
+\emph{Findings.} Three observations survive the move from proxy to
+measurement. First, the measured utility weights are concentrated:
+$w_h$ is large on shared\_1 ($0.342$), hair ($0.275$), shared\_0 ($0.271$),
+skin ($0.174$) and background ($0.170$), while the facial-feature blocks are
+nearly free to protect ($w_{\mathrm{eyes}}{=}0.0097$,
+$w_{\mathrm{nose}}{=}0.0088$, $w_{\mathrm{ear\_r}}{=}0.0078$). Visual
+inspection of the sweep grids shows why: the generator absorbs local latent
+noise into plausible variations, such as make-up-like changes around the eyes
+at $\sigma_h{=}0.8$ or recolouring for hair, rather than perceptual distortion,
+so a decomposed latent is not uniformly sensitive to noise. Second, identity
+is entangled with utility through the shared and skin blocks, which is what
+keeps the decoupled-scenario overlap at $0.590$; the certificate price is
+again governed by overlap, not by $\varepsilon$. Third, the audit ordering of
+Proposition~\ref{pr:quadrature} reproduces on the measured scalars: at
+quadrature $\varepsilon{=}2000$, $\delta{=}10^{-5}$, the reconstruction
+scenario ($\bar\mu_h\approx14.5$) reports amplitude-only $1055.2$ $<
+$quadrature $2000$ $<$ RDP $2037.8$ $<$ exact tail $2803.0$, and the decoupled
+scenario ($\bar\mu_h\approx21.2$) reports $718.4 < 2000 < 2037.8 < 2466.3$.
+
+\emph{What remains pending.} The attack error $P_e$ is still the Fano-floor
+certificate evaluated against a surrogate adversary. A measured $P_e$
+requires inverting a labelled identity corpus (CelebAMask-HQ file names
+joined back to the CelebA identity list) through the generator and training
+a recognition head on held-out identities, a GPU-scale inversion workload
+that this CPU-only build does not attempt. The generator-sampled codes used
+here carry no real identity, so the released calibration data raises no
+subject-privacy concern.
+
+% =====================================================================
+\section{Discussion and Limitations}
+\label{sec:discussion}
+% =====================================================================
+
+\subsection{Limitations}
+
+The study carries six limitations. L1 and L6 are inherent to the certificate
+framework; L2--L5 are limitations of the current implementation and calibration.
+
+\begin{enumerate}
+\item[(L1)] \emph{Attack scope (framework-inherent).} The certificate of
+Theorem~\ref{th:certificate} is an identification guarantee, not a guarantee on
+arbitrary attribute inference. It constrains every estimator of the template
+$B$ but says nothing about an attribute that is not a function of $z_P$.
+\item[(L2)] \emph{Surrogate attack error and prior-pushforward calibration
+(implementation-level).}
+The four calibration scalars are measured on the released generator
+(Section~\ref{sec:latent}), but the identification error $P_e$ is still a
+surrogate evaluated against the Fano floor, not a trained recognition head on
+held-out identities. In addition, the measured source statistics come from
+prior codes pushed through the real mapping network, not from codes inverted
+from real identities; an inversion-based calibration could shift $g_h$ and
+$\Delta f_h$ if real codes lie off the prior manifold.
+\item[(L3)] \emph{Manual private partition (implementation-level).} The private subspace $P$ is
+declared by the operator before the noise is drawn. The method does not address
+automatic learning or partitioning of the private semantic components.
+\item[(L4)] \emph{Conservative correlation bound (implementation-level).} The block-wise second-order
+structure of Assumption~\ref{as:indep} ignores residual within- and
+across-block correlation; the AM--GM second-order bound is a safe upper bound but makes the
+estimated utility performance look pessimistic (Remark~\ref{rm:corr}).
+\item[(L5)] \emph{Key-conditional mode (implementation-level).} When the shaping $T$ is a Bob-secret
+key unknown to the eavesdropper, the resulting guarantee is key-conditional
+privacy, not plain $(\varepsilon,\delta)$-DP under the Kerckhoffs assumption
+(Remark~\ref{rm:tension}).
+\item[(L6)] \emph{Finite template bank (framework-inherent).} For any finite $K$, the feasibility
+ceiling $\tau_{\max}(K)<1$; an arbitrarily strong certified identification
+error upper bound is unattainable, because the template entropy itself is the
+budget currency.
+\end{enumerate}
+
+\subsection{Future Work}
+
+Four directions follow directly from these limitations.
+
+\begin{enumerate}
+\item[(F1)] \emph{Measured identification error on inverted identities.} The
+first two stages of the latent-level validation are complete
+(Section~\ref{sec:latent}): the released SemanticStyleGAN generator fixes the
+real per-block variance, clipped range, utility weights and Wiener residuals,
+checking Assumptions~\ref{as:range}--\ref{as:indep} on the true latent
+geometry. The remaining stage is the attack: invert a labelled identity
+corpus (CelebAMask-HQ file names joined to the CelebA identity list) through
+the generator, train a recognition head on held-out identities, and measure
+the identification error against the certified floor, replacing the surrogate
+$P_e$ used here; this also upgrades the source statistics from the prior
+pushforward to an inversion-based calibration.
+\item[(F2)] \emph{Automatic private-partition learning.} Develop a method that
+derives the private set $P$ from an explicit privacy target and the measured
+task--private overlap, instead of declaring it by hand.
+\item[(F3)] \emph{Accounting beyond Gaussian noise.} Extend the auditable
+composition and certificate to non-Gaussian noise mechanisms, where the
+privacy-loss distribution is not exactly Gaussian and GDP quadrature no longer
+applies.
+\item[(F4)] \emph{Tightening the correlated-source bound.} Under strong
+between-block correlation, estimate the joint covariance and replace the
+block-wise AM--GM relaxation by the exact determinant bound of
+Lemma~\ref{lm:maxent}, so the certified leakage reflects the true joint mutual
+information more tightly.
+\item[(F5)] \emph{Cross-release composition.} Study budget composition over
+multiple releases to the same subject; the present analysis is single-release
+and does not cover a repeated-query adversary.
+\end{enumerate}
+
+% =====================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+% =====================================================================
+
+Three practical conclusions follow from this study. First, the privacy of a
+semantic link cannot be judged from the appearance of the released noise; an
+auditable budget must be computed from the component sensitivity and the
+composition law, and reported alongside an adversary identification bound
+(the two guarantees are independent). Second, amplitude-only $\ell_1$
+accounting inherits the Laplace-mechanism form and under-reports the leakage of
+a Gaussian release in the low-noise (large-$\mu$) regime, presenting a
+tighter-looking assessment than the mechanism guarantees. Third, a dynamic,
+globally coordinated budget allocation outperforms protecting a fixed subset of
+components: the static rule leaves the untouched private blocks released clean
+and certifies no identification floor. The framework is a mechanism-level,
+general-purpose tool for auditing latent releases that satisfy the stated
+model assumptions, and is not tied to SemanticStyleGAN; that generator serves
+only as the testbed for the numerical calibration.
+
+The evidence now includes a latent-level measurement on the released
+SemanticStyleGAN generator: all four calibration scalars are measured on real
+decomposed codes and generator decodes, and the accounting ordering, the
+overlap--price relation and the static-rule failure all reproduce on the
+measured calibration. The remaining surrogate is the identification attack
+error, whose measurement on an inverted-identity corpus is the first item of
+future work.
+
+\subsection*{Code and Data Availability}
+The calibration routines, the closed-form allocator and its accounting
+solvers, the reproduction pipeline, the latent-level measurement pipeline, the
+PGFPlots data files and the unit tests are available at
+\url{https://github.com/wqinmin975/Auditable-Privacy-Accounting-and-Dynamic-Semantic-Budget};
+the archived release DOI will be inserted upon publication. The
+CelebAMask-HQ shard used for the measured proxy is downloaded from the public
+Hugging Face dataset \texttt{v-xchen-v/celebamask\_hq}; it is used under the
+original dataset's research license, for proxy statistics only. The latent
+calibration loads the official SemanticStyleGAN CelebAMask-HQ checkpoint from
+the authors' public release, with the generator code vendored under
+\texttt{third\_party/} together with its license. No face images, identity
+labels, or inverted latent corpus are redistributed in this release; the
+reported latent statistics are computed from generator-sampled prior codes
+that carry no real identity, and only aggregate per-block scalars and curves
+are reported. Reproduction splits into two parts: (i) the synthetic anchor and
+the proxy calibrations, which run entirely on CPU from the committed code and
+`.dat` sources; and (ii) the full identification-attack experiment, which needs
+a GPU and an inverted, labelled face-identity corpus and is not yet implemented
+in the release. Large generated binaries (multi-GB source-statistics arrays and
+the pretrained checkpoint) are excluded by \texttt{.gitignore}; the repository
+README documents how to regenerate or download each of them.
+
+\subsection*{Biographies}
+
+\textbf{Qinmin Wang} received the M.Sc. degree from the National Digital
+Switching System Engineering and Technological R\&D Center (NDSC) in 2006 and
+the Ph.D. degree from the University of Electronic Science and Technology of
+China (UESTC) in 2009. He is currently an Associate Professor with the School
+of Computer Science and Artificial Intelligence, Guangdong University of
+Science and Technology, Dongguan, China. His research interests include
+semantic communications, communication anti-jamming techniques, radar signal
+processing, non-cooperative communications, and deep learning.
+
+\textbf{Zixin Wang} is with the College of Electronic and Communication
+Engineering, Tianjin Normal University, Tianjin, China. His research interests
+include semantic communications and communication signal processing.
+
+\textbf{Jie Peng} (1981--) received the M.Sc. degree. He is with Shenzhen
+Customs, Shenzhen, China.
+
+\textbf{Fenggui Pei} is with the School of Computer Science and Artificial
+Intelligence, Guangdong University of Science and Technology, Dongguan, China.
+
+\textbf{Zongzhong Wang} (Corresponding author) is with the School of
+Electromechanical Engineering, Guangdong University of Technology, Guangzhou,
+China.
+
+\begin{thebibliography}{99}
+\bibitem{dong2022gdp} J.~Dong, A.~Roth, and W.~J. Su,
+``Gaussian differential privacy,'' \emph{J. Roy. Stat. Soc. B}, vol.~84,
+no.~1, pp.~3--37, 2022.
+\bibitem{mironov2017rdp} I.~Mironov, ``R\'enyi differential privacy,'' in
+\emph{Proc. IEEE 30th Comput. Secur. Found. Symp. (CSF)}, 2017, pp.~263--275.
+\bibitem{dwork2014} C.~Dwork and A.~Roth, \emph{The Algorithmic Foundations of
+Differential Privacy}. Hanover, MA, USA: Now Publishers, 2014.
+\bibitem{abadi2016} M.~Abadi \emph{et al.}, ``Deep learning with differential
+privacy,'' in \emph{Proc. ACM SIGSAC Conf. Comput. Commun. Secur. (CCS)}, 2016,
+pp.~308--318.
+\bibitem{shokri2017} R.~Shokri, M.~Stronati, C.~Song, and V.~Shmatikov,
+``Membership inference attacks against machine learning models,'' in
+\emph{Proc. IEEE Symp. Secur. Privacy (S\&P)}, 2017, pp.~3--18.
+\bibitem{fano} T.~M. Cover and J.~A. Thomas, \emph{Elements of Information
+Theory}, 2nd ed. Hoboken, NJ, USA: Wiley, 2006.
+\bibitem{privacyfunnel} A.~Makhdoumi, S.~Salamatian, N.~Fawaz, and M.~M\'edard,
+``From the information bottleneck to the privacy funnel,'' in \emph{Proc. IEEE
+Inf. Theory Workshop (ITW)}, 2014, pp.~501--505.
+\bibitem{semcomsurvey_won} D.~Won, G.~Woraphonbenjakul, A.~B.~Wondmagegn,
+A.-T.~Tran, D.~Lee, D.~S.~Lakew, and S.~Cho, ``Resource management, security,
+and privacy issues in semantic communications: A survey,'' \emph{IEEE Commun.
+Surveys Tutorials}, vol.~27, no.~3, pp.~1758--1797, 2025.
+\bibitem{semcomsurvey_meng} R.~Meng \emph{et al.}, ``A survey of secure semantic
+communications,'' \emph{J. Netw. Comput. Appl.}, vol.~239, Art. no.~104181,
+2025, doi: 10.1016/j.jnca.2025.104181.
+\bibitem{semanticstylegan} Y.~Shi, X.~Yang, Y.~Wan, and X.~Shen,
+``SemanticStyleGAN: Learning compositional generative priors for controllable
+image synthesis and editing,'' in \emph{Proc. IEEE/CVF Conf. Comput. Vis.
+Pattern Recognit. (CVPR)}, 2022, pp.~11254--11264.
+% Title, authors, Δf and ε grid verified against arXiv:2510.23274v2 (2026-04-23).
+\bibitem{arXiv2510} W.~Chen, Q.~Yang, S.~Shao, S.~Tang, Z.~Shi, and S.~Yu,
+``Privacy-preserving semantic communication over wiretap channels with learnable
+differential privacy,'' 2025, revised 2026, \emph{arXiv:2510.23274v2}.
+\bibitem{celebamaskhq} C.-H. Lee, Z.~Liu, L.~Wu, and P.~Luo, ``MaskGAN:
+Towards diverse and interactive facial image manipulation,'' in \emph{Proc.
+IEEE/CVF Conf. Comput. Vis. Pattern Recognit. (CVPR)}, 2020, pp.~5549--5558.
+\bibitem{lpips} R.~Zhang, P.~Isola, A.~A. Efros, E.~Shechtman, and O.~Wang,
+``The unreasonable effectiveness of deep features as a perceptual metric,'' in
+\emph{Proc. IEEE/CVF Conf. Comput. Vis. Pattern Recognit. (CVPR)}, 2018,
+pp.~586--595.
+\end{thebibliography}
+
+\end{document}

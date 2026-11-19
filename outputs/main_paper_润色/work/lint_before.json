@@ -1,0 +1,759 @@
+{
+  "summary": {
+    "lang": "en",
+    "target": "original",
+    "checks_run": [
+      "abstract",
+      "ai",
+      "format",
+      "length",
+      "numbers",
+      "refs",
+      "rhythm",
+      "terms"
+    ],
+    "segments": 128,
+    "segments_flagged": 26,
+    "P0": 0,
+    "P1": 18,
+    "P2": 36,
+    "by_kind": {
+      "rhythm": 36,
+      "format": 6,
+      "terms": 10,
+      "refs": 1,
+      "abstract": 1
+    },
+    "high_risk_segments": [],
+    "by_kind_level": {
+      "rhythm": {
+        "P0": 0,
+        "P1": 2,
+        "P2": 34
+      },
+      "format": {
+        "P0": 0,
+        "P1": 6,
+        "P2": 0
+      },
+      "terms": {
+        "P0": 0,
+        "P1": 10,
+        "P2": 0
+      },
+      "refs": {
+        "P0": 0,
+        "P1": 0,
+        "P2": 1
+      },
+      "abstract": {
+        "P0": 0,
+        "P1": 0,
+        "P2": 1
+      }
+    },
+    "rhythm": {
+      "original": {
+        "sentences": 412,
+        "mean": 28.5,
+        "std": 16.9,
+        "cv": 0.593,
+        "burstiness": -0.255,
+        "adjacent_gap_mean": 18.3,
+        "min": 1,
+        "max": 86,
+        "segments_checked": 31,
+        "segments_cv_low": 2,
+        "cv_median": 0.408
+      }
+    }
+  },
+  "issues": [
+    {
+      "segment_id": 3,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 53词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 6,
+      "kind": "rhythm",
+      "level": "P1",
+      "detail": "句长高度均一：CV 0.268（均 41.4词，σ 11.1），相邻句长差均值仅 22.8词",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 6,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 55词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 9,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 51词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 13,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 70词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 14,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "句长偏均一：CV 0.364（均 22.6词，σ 8.2）",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 14,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "本段无短句（最短 12词），缺少用短句落判断的节奏",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 24,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 51词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 34,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 65词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 38,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 68词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 41,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 75词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 46,
+      "kind": "format",
+      "level": "P1",
+      "detail": "破折号写成 -- （应为 ——）",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 56,
+      "kind": "format",
+      "level": "P1",
+      "detail": "破折号写成 -- （应为 ——）",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 56,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 56词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 63,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "句长偏均一：CV 0.311（均 35.0词，σ 10.9）",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 63,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 50词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 73,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "句长偏均一：CV 0.371（均 43.5词，σ 16.1）",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 73,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 76词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 73,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "本段无短句（最短 20词），缺少用短句落判断的节奏",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 91,
+      "kind": "format",
+      "level": "P1",
+      "detail": "破折号写成 -- （应为 ——）",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 91,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 51词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 93,
+      "kind": "format",
+      "level": "P1",
+      "detail": "破折号写成 -- （应为 ——）",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 94,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 49词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 105,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "句长偏均一：CV 0.324（均 42.8词，σ 13.8）",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 105,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 61词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 107,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "句长偏均一：CV 0.374（均 33.5词，σ 12.5）",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 107,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 60词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 109,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 60词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 110,
+      "kind": "format",
+      "level": "P1",
+      "detail": "破折号写成 -- （应为 ——）",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 112,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "句长偏均一：CV 0.359（均 34.6词，σ 12.4）",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 112,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 54词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 115,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "句长偏均一：CV 0.366（均 33.8词，σ 12.4）",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 115,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 47词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 118,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "句长偏均一：CV 0.369（均 33.7词，σ 12.4）",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 118,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 50词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 118,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "本段无短句（最短 14词），缺少用短句落判断的节奏",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 120,
+      "kind": "format",
+      "level": "P1",
+      "detail": "破折号写成 -- （应为 ——）",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 120,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "句长偏均一：CV 0.283（均 43.3词，σ 12.3）",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 120,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 63词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 123,
+      "kind": "rhythm",
+      "level": "P1",
+      "detail": "句长高度均一：CV 0.237（均 39.2词，σ 9.3），相邻句长差均值仅 13.6词",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 123,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "存在超长句（最长 51词），超过 45词 建议拆分",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": 124,
+      "kind": "rhythm",
+      "level": "P2",
+      "detail": "句长偏均一：CV 0.346（均 16.2词，σ 5.6）",
+      "span": "",
+      "target": "original"
+    },
+    {
+      "segment_id": -1,
+      "kind": "terms",
+      "level": "P1",
+      "detail": "缩写 DP 出现 39 次，但未检出“全称（DP）”形式的首次定义",
+      "span": "DP"
+    },
+    {
+      "segment_id": -1,
+      "kind": "terms",
+      "level": "P1",
+      "detail": "缩写 KKT 出现 10 次，但未检出“全称（KKT）”形式的首次定义",
+      "span": "KKT"
+    },
+    {
+      "segment_id": -1,
+      "kind": "terms",
+      "level": "P1",
+      "detail": "缩写 RDP 出现 23 次，但未检出“全称（RDP）”形式的首次定义",
+      "span": "RDP"
+    },
+    {
+      "segment_id": -1,
+      "kind": "terms",
+      "level": "P1",
+      "detail": "缩写 HQ 出现 8 次，但未检出“全称（HQ）”形式的首次定义",
+      "span": "HQ"
+    },
+    {
+      "segment_id": -1,
+      "kind": "terms",
+      "level": "P1",
+      "detail": "缩写 PSD 出现 2 次，但未检出“全称（PSD）”形式的首次定义",
+      "span": "PSD"
+    },
+    {
+      "segment_id": -1,
+      "kind": "terms",
+      "level": "P1",
+      "detail": "缩写 AM 出现 4 次，但未检出“全称（AM）”形式的首次定义",
+      "span": "AM"
+    },
+    {
+      "segment_id": -1,
+      "kind": "terms",
+      "level": "P1",
+      "detail": "缩写 GM 出现 4 次，但未检出“全称（GM）”形式的首次定义",
+      "span": "GM"
+    },
+    {
+      "segment_id": -1,
+      "kind": "terms",
+      "level": "P1",
+      "detail": "缩写 CUDA 出现 2 次，但未检出“全称（CUDA）”形式的首次定义",
+      "span": "CUDA"
+    },
+    {
+      "segment_id": -1,
+      "kind": "terms",
+      "level": "P1",
+      "detail": "缩写 CPU 出现 6 次，但未检出“全称（CPU）”形式的首次定义",
+      "span": "CPU"
+    },
+    {
+      "segment_id": -1,
+      "kind": "terms",
+      "level": "P1",
+      "detail": "缩写 GPU 出现 3 次，但未检出“全称（GPU）”形式的首次定义",
+      "span": "GPU"
+    },
+    {
+      "segment_id": -1,
+      "kind": "refs",
+      "level": "P2",
+      "detail": "未检出参考文献章节（标题需为「参考文献」/「References」等且单独成段）。若这是论文片段而非全文，可忽略此项",
+      "span": ""
+    },
+    {
+      "segment_id": -1,
+      "kind": "abstract",
+      "level": "P2",
+      "detail": "未检出摘要章节（标题需为「摘要」/「Abstract」且单独成段）。若是论文片段可忽略",
+      "span": ""
+    }
+  ],
+  "issues_before": [],
+  "per_segment": [
+    {
+      "segment_id": 3,
+      "P0": 0,
+      "P1": 0,
+      "P2": 1,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "low"
+    },
+    {
+      "segment_id": 6,
+      "P0": 0,
+      "P1": 1,
+      "P2": 1,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "medium"
+    },
+    {
+      "segment_id": 9,
+      "P0": 0,
+      "P1": 0,
+      "P2": 1,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "low"
+    },
+    {
+      "segment_id": 13,
+      "P0": 0,
+      "P1": 0,
+      "P2": 1,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "low"
+    },
+    {
+      "segment_id": 14,
+      "P0": 0,
+      "P1": 0,
+      "P2": 2,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "low"
+    },
+    {
+      "segment_id": 24,
+      "P0": 0,
+      "P1": 0,
+      "P2": 1,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "low"
+    },
+    {
+      "segment_id": 34,
+      "P0": 0,
+      "P1": 0,
+      "P2": 1,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "low"
+    },
+    {
+      "segment_id": 38,
+      "P0": 0,
+      "P1": 0,
+      "P2": 1,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "low"
+    },
+    {
+      "segment_id": 41,
+      "P0": 0,
+      "P1": 0,
+      "P2": 1,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "low"
+    },
+    {
+      "segment_id": 46,
+      "P0": 0,
+      "P1": 1,
+      "P2": 0,
+      "kinds": [
+        "format"
+      ],
+      "risk": "medium"
+    },
+    {
+      "segment_id": 56,
+      "P0": 0,
+      "P1": 1,
+      "P2": 1,
+      "kinds": [
+        "format",
+        "rhythm"
+      ],
+      "risk": "medium"
+    },
+    {
+      "segment_id": 63,
+      "P0": 0,
+      "P1": 0,
+      "P2": 2,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "low"
+    },
+    {
+      "segment_id": 73,
+      "P0": 0,
+      "P1": 0,
+      "P2": 3,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "low"
+    },
+    {
+      "segment_id": 91,
+      "P0": 0,
+      "P1": 1,
+      "P2": 1,
+      "kinds": [
+        "format",
+        "rhythm"
+      ],
+      "risk": "medium"
+    },
+    {
+      "segment_id": 93,
+      "P0": 0,
+      "P1": 1,
+      "P2": 0,
+      "kinds": [
+        "format"
+      ],
+      "risk": "medium"
+    },
+    {
+      "segment_id": 94,
+      "P0": 0,
+      "P1": 0,
+      "P2": 1,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "low"
+    },
+    {
+      "segment_id": 105,
+      "P0": 0,
+      "P1": 0,
+      "P2": 2,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "low"
+    },
+    {
+      "segment_id": 107,
+      "P0": 0,
+      "P1": 0,
+      "P2": 2,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "low"
+    },
+    {
+      "segment_id": 109,
+      "P0": 0,
+      "P1": 0,
+      "P2": 1,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "low"
+    },
+    {
+      "segment_id": 110,
+      "P0": 0,
+      "P1": 1,
+      "P2": 0,
+      "kinds": [
+        "format"
+      ],
+      "risk": "medium"
+    },
+    {
+      "segment_id": 112,
+      "P0": 0,
+      "P1": 0,
+      "P2": 2,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "low"
+    },
+    {
+      "segment_id": 115,
+      "P0": 0,
+      "P1": 0,
+      "P2": 2,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "low"
+    },
+    {
+      "segment_id": 118,
+      "P0": 0,
+      "P1": 0,
+      "P2": 3,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "low"
+    },
+    {
+      "segment_id": 120,
+      "P0": 0,
+      "P1": 1,
+      "P2": 2,
+      "kinds": [
+        "format",
+        "rhythm"
+      ],
+      "risk": "medium"
+    },
+    {
+      "segment_id": 123,
+      "P0": 0,
+      "P1": 1,
+      "P2": 1,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "medium"
+    },
+    {
+      "segment_id": 124,
+      "P0": 0,
+      "P1": 0,
+      "P2": 1,
+      "kinds": [
+        "rhythm"
+      ],
+      "risk": "low"
+    }
+  ]
+}

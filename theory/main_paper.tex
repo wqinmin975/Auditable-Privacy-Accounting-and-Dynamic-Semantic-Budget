@@ -113,24 +113,19 @@ of these codes therefore has to answer two questions that are usually left
 implicit: what exactly is being certified, and how much legitimate distortion
 the certificate costs.
 
-The companion scheme studied in this work~\cite{arXiv2510} perturbs a subset
-of the semantic latent codes and shapes the perturbation with a discriminator so
-that the released noise stays close to a Laplace draw while remaining
-semantically mild; this is a reasonable engineering trade-off between legitimate
-distortion and privacy. That work \emph{does} state a nominal privacy budget: it
-reports a global sensitivity $\Delta f=351.88$ and calibrates Laplace noise
-$\mathrm{Lap}(0,\Delta f/\varepsilon)$ for $\varepsilon\in\{1,5,\ldots,2000\}$.
-The gap is therefore not the absence of a parameter but the absence of an
-\emph{auditable guarantee for the noise actually released}: the discriminator
-learns a pattern that only approximates a Laplace draw, so the published
-$(\varepsilon,\delta)$ value is not a proof about the released mechanism, and no
-identification-error statement is made. This work does not replace that design;
-it supplies a framework to audit any such release under standard DP metrics and
-to check it against an identification attack. For comparison we re-price a
-\emph{Gaussian proxy} of its operating point (Section~\ref{sec:experiments});
-this quantifies how the budget should be charged if the pattern were an exact
-additive Gaussian mechanism, and is not a claim about the pattern's true
-distribution.
+The scheme of~\cite{arXiv2510} perturbs a subset of semantic latent codes, then uses a discriminator
+to shape that perturbation. The goal is twofold: keep the released noise close to a
+Laplace draw, and keep the distortion semantically mild. It is a reasonable engineering
+trade-off. That work \emph{does} state a nominal privacy budget --- a global sensitivity $\Delta f=351.88$,
+with Laplace noise $\mathrm{Lap}(0,\Delta f/\varepsilon)$ calibrated for $\varepsilon\in\{1,5,\ldots,2000\}$. What is missing is not a parameter but an
+\emph{auditable guarantee for the noise actually released}. The discriminator learns a pattern that only approximates a Laplace draw; the
+published $(\varepsilon,\delta)$ value is therefore not a proof about the released mechanism, and no
+identification-error statement is made. This work does not replace that design. It
+supplies a framework to audit any such release under standard DP metrics and to check it
+against an identification attack. For comparison we re-price a \emph{Gaussian proxy} of its operating
+point (Section~\ref{sec:experiments}): how the budget should be charged if the pattern were an exact
+additive Gaussian mechanism. This is a statement about the accounting law, not about the
+pattern's true distribution.
 
 The framework reports two complementary evaluation tools that must not be
 confused. The $(\varepsilon,\delta)$-DP system (RDP, GDP, linear tail bound)
@@ -174,20 +169,17 @@ program. The standard R\'enyi-DP to $(\varepsilon,\delta)$ conversion and the
 Gaussian-DP quadrature composition are derived, and the classical linear tail
 bound is audited against them.
 
-\emph{Scope of the evaluation.} The sensitivity derivation, post-processing
-theorem, Fano certificate, KKT allocation and composition rules are
-mechanism-level results that hold for any release satisfying the model
-assumptions. The quantitative calibration now rests on the released
-SemanticStyleGAN generator: the per-block source power, sensitivity, utility
-weight and shaping residual are measured on real decomposed latent codes and
-generator decodes (Section~\ref{sec:latent}), and the accounting ordering, the
-dependence on the task--private overlap, and the failure mode of the
-amplitude-only law are all reproduced on this measured calibration. The
-identification error $P_e$ and the LPIPS perceptual score remain documented
-surrogate quantities: the LPIPS is a model-based prediction on generator
-decodes, and the identification error against the Fano floor awaits an
-inverted-identity corpus with labels, as recorded in
-Section~\ref{sec:discussion}.
+\emph{Scope of the evaluation.} The sensitivity derivation, post-processing theorem, Fano certificate, KKT
+allocation and composition rules are mechanism-level results. They hold for any release
+that satisfies the model assumptions, not just for the generator used below. The
+quantitative calibration does rest on the released SemanticStyleGAN generator: per-block
+source power, sensitivity, utility weight and shaping residual are measured on real
+decomposed codes and generator decodes (Section~\ref{sec:latent}). Three findings are reproduced on
+that measured calibration --- the accounting ordering, the dependence on the
+task--private overlap, and the failure mode of the amplitude-only law. Two quantities
+remain documented surrogates. The LPIPS score is a model-based prediction on generator
+decodes; the identification error against the Fano floor awaits an inverted-identity
+corpus with labels, as recorded in Section~\ref{sec:discussion}.
 
 The remainder of the paper is organised as follows.
 Section~\ref{sec:related} positions the work against semantic-privacy, DP
@@ -221,25 +213,21 @@ Section~\ref{sec:discussion} record this explicitly.
 \label{sec:related}
 % =====================================================================
 
-\emph{Semantic representations and their privacy.} Modern generative
-encoders decompose an image into a global structure code and part-wise local
-codes that support controllable synthesis and editing~\cite{semanticstylegan}.
-Releasing such codes over a wireless link is the standard semantic-communication
-pipeline, and the released part codes carry the identity of the subject; recent
-surveys of security and privacy in semantic communications cover the
-threat models and defence techniques~\cite{semcomsurvey_won,semcomsurvey_meng}. The
-reference semantic-adaptive DP design~\cite{arXiv2510} perturbs a subset of
-codes with Laplace noise calibrated to a stated global sensitivity
-($\Delta f=351.88$) and nominal $\varepsilon$, then shapes it with a learned
-pattern to keep Bob's distortion low; however, neither the \emph{component-wise}
-sensitivity of the decomposed code nor the composition law across private
-blocks is made explicit, and the learned released noise carries no auditable DP
-proof. Many semantic-privacy works likewise optimise a learned noise shape
-against reconstruction distortion (e.g.\ LPIPS) without evaluating an
-identification attack or its error floor. \emph{Gap:} the common deficiency is
-an auditable, block-wise account paired with an operational attack bound, not
-the mere presence of an $\varepsilon$ value. The present paper starts from the
-component sensitivity and the composition law instead.
+\emph{Semantic representations and their privacy.} A modern generative encoder splits an image into a global structure code and
+part-wise local codes, which is what makes controlled synthesis and editing
+possible~\cite{semanticstylegan}. Over a wireless link, releasing those codes is the standard
+semantic-communication step --- and the part codes carry the subject's identity. Two
+surveys map the threat models and defence techniques in this setting~\cite{semcomsurvey_won,semcomsurvey_meng}. The reference
+design~\cite{arXiv2510} perturbs a subset of codes with Laplace noise, calibrated to a stated global
+sensitivity ($\Delta f=351.88$) and nominal $\varepsilon$, then shapes the result with a learned pattern to hold
+down Bob's distortion. Two things remain implicit: the \emph{component-wise} sensitivity of the decomposed
+code, and the composition law across private blocks. Nor does the learned released noise
+carry an auditable DP proof. The same pattern recurs in much semantic-privacy work,
+where a learned noise shape is tuned against reconstruction distortion (e.g.\ LPIPS)
+with no identification attack or error floor evaluated. \emph{Gap:} what is missing is an
+auditable, block-wise account paired with an operational attack bound --- not the mere
+presence of an $\varepsilon$ value. This paper starts from the component sensitivity and the
+composition law.
 
 \emph{Privacy accounting.} The second reference point is the DP accounting
 literature. The Gaussian mechanism and its classical linear
@@ -259,17 +247,14 @@ attacks~\cite{shokri2017} ask whether a particular record contributed to the
 release; the identification certificate here is a different $K$-ary problem,
 namely which enrolled template the released code matches.
 
-\emph{Information-theoretic privacy and identification.} The third reference
-point is the information-theoretic view of identification. Fano's inequality
-turns an information bound into a lower bound on the error of a $K$-ary
-estimator~\cite{fano}. Information-bottleneck and privacy-funnel
-formulations~\cite{privacyfunnel} trade released information against task
-utility through an optimized objective;
-the present work does not optimize such a loss; it instead produces an
+\emph{Information-theoretic privacy and identification.} Fano's inequality offers a third reference point: it converts an information bound
+into a lower bound on the error of a $K$-ary estimator~\cite{fano}. Information-bottleneck and
+privacy-funnel formulations~\cite{privacyfunnel} trade released information against task utility by
+optimizing an objective. This work does not optimize such a loss. It instead derives an
 auditable, verifiable lower bound on an adversary's identification error from
-second-order release statistics, stated in the operational language the system
-cares about: the identification error an adversary cannot drive below, rather
-than a marginal distribution that looks private.
+second-order release statistics. The bound is stated in operational terms the system
+cares about: the error an adversary cannot drive below, rather than a marginal
+distribution that merely looks private.
 
 % =====================================================================
 \section{System Model and Notation}
@@ -744,29 +729,23 @@ applies this conversion before solving the KKT system.
 
 \begin{remark}[Certificate versus the $(\varepsilon,\delta)$ budget]
 \label{rm:twosystems}
-The paper runs two complementary accounting systems that should be reported
-side by side. The RDP/GDP/$\ell_1$ machinery of Section~\ref{sec:rdpgdp}
-translates the accounting rule and noise scale into an $(\varepsilon,\delta)$
-guarantee relative to adjacent records. The Fano certificate of
-Theorem~\ref{th:certificate} does not depend on an $(\varepsilon,\delta)$
-budget: using only the second-order quantities $(g_h,\sigma_h)$ it turns the
-noise level directly into an operational lower bound on an identification
-attack's error. The two are not substitutes. A release can be
-$(\varepsilon,\delta)$-DP with a loose $\varepsilon$ and still leave a
-measurable identifying amount in the task-relevant signal; conversely, a coarse
-release that simply drops the identity block can hold a Fano floor without
-satisfying DP under the chosen adjacency, because adjacent records may still
-differ in a noisy other block. Tables~\ref{tab:synthetic}--\ref{tab:audit}
-therefore list both the DP accounting columns and the certificate floor
-together. A like-for-like
-$(\varepsilon,\delta)$ audit of the reference scheme~\cite{arXiv2510} is not
-possible from its reported parameters: it specifies a nominal Laplace scale
-$\Delta f/\varepsilon$, but the discriminator-shaped pattern that is actually
-released is only approximately Laplace and has no proven DP guarantee. The
-comparison here is therefore a Gaussian-proxy what-if: we re-price the
-operating point as if the release were an exact additive Gaussian mechanism,
-which is a statement about the accounting law, not an audit of the learned
-pattern's true distribution.
+Two accounting systems run in parallel here, and both should be reported. The
+RDP/GDP/$\ell_1$ machinery of Section~\ref{sec:rdpgdp} turns the accounting rule and noise scale into an
+$(\varepsilon,\delta)$ guarantee relative to adjacent records. The Fano certificate of Theorem~\ref{th:certificate} takes a
+different route: it needs no $(\varepsilon,\delta)$ budget at all. From the second-order quantities $(g_h,\sigma_h)$
+alone it converts the noise level into an operational lower bound on an identification
+attack's error. Neither substitutes for the other. A release can meet an $(\varepsilon,\delta)$-DP budget
+with a loose $\varepsilon$ yet still leave a measurable identifying trace in the task-relevant
+signal. The reverse also occurs: a coarse release that simply drops the identity block
+can hold a Fano floor without satisfying DP under the chosen adjacency, since adjacent
+records may still differ in some other, noisy block. Tables~\ref{tab:synthetic}--\ref{tab:audit} therefore report
+the DP accounting columns and the certificate floor side by side. A like-for-like $(\varepsilon,\delta)$
+audit of~\cite{arXiv2510} cannot be made from its reported parameters. It gives a nominal Laplace
+scale $\Delta f/\varepsilon$, but the pattern actually released is discriminator-shaped and only
+approximately Laplace, with no proven DP guarantee. What follows is therefore a
+Gaussian-proxy what-if: we re-price the operating point as if the release were an exact
+additive Gaussian mechanism. That is a statement about the accounting law, not an audit
+of the learned pattern's true distribution.
 \end{remark}
 
 \begin{remark}[Scope of the certificate]
@@ -1520,13 +1499,12 @@ scenario ($\bar\mu_h\approx14.5$) reports amplitude-only $1055.2$ $<
 $quadrature $2000$ $<$ RDP $2037.8$ $<$ exact tail $2803.0$, and the decoupled
 scenario ($\bar\mu_h\approx21.2$) reports $718.4 < 2000 < 2037.8 < 2466.3$.
 
-\emph{What remains pending.} The attack error $P_e$ is still the Fano-floor
-certificate evaluated against a surrogate adversary. A measured $P_e$
-requires inverting a labelled identity corpus (CelebAMask-HQ file names
-joined back to the CelebA identity list) through the generator and training
-a recognition head on held-out identities, a GPU-scale inversion workload
-that this CPU-only build does not attempt. The generator-sampled codes used
-here carry no real identity, so the released calibration data raises no
+\emph{What remains pending.} The attack error $P_e$ is still the Fano-floor certificate evaluated against a
+surrogate adversary. Measuring it would require inverting a labelled identity corpus
+through the generator --- CelebAMask-HQ file names joined back to the CelebA identity
+list --- and training a recognition head on held-out identities. That is a GPU-scale
+inversion workload, which this CPU-only build does not attempt. The codes sampled from
+the generator carry no real identity, so the released calibration data raises no
 subject-privacy concern.
 
 % =====================================================================
@@ -1575,32 +1553,24 @@ budget currency.
 Four directions follow directly from these limitations.
 
 \begin{enumerate}
-\item[(F1)] \emph{Measured identification error on inverted identities.} The
-first two stages of the latent-level validation are complete
-(Section~\ref{sec:latent}): the released SemanticStyleGAN generator fixes the
-real per-block variance, clipped range, utility weights and Wiener residuals,
-checking Assumptions~\ref{as:range}--\ref{as:indep} on the true latent
-geometry. The remaining stage is the attack: invert a labelled identity
-corpus (CelebAMask-HQ file names joined to the CelebA identity list) through
-the generator, train a recognition head on held-out identities, and measure
-the identification error against the certified floor, replacing the surrogate
-$P_e$ used here; this also upgrades the source statistics from the prior
-pushforward to an inversion-based calibration.
-\item[(F2)] \emph{Automatic private-partition learning.} Develop a method that
-derives the private set $P$ from an explicit privacy target and the measured
-task--private overlap, instead of declaring it by hand.
-\item[(F3)] \emph{Accounting beyond Gaussian noise.} Extend the auditable
-composition and certificate to non-Gaussian noise mechanisms, where the
-privacy-loss distribution is not exactly Gaussian and GDP quadrature no longer
-applies.
-\item[(F4)] \emph{Tightening the correlated-source bound.} Under strong
-between-block correlation, estimate the joint covariance and replace the
-block-wise AM--GM relaxation by the exact determinant bound of
-Lemma~\ref{lm:maxent}, so the certified leakage reflects the true joint mutual
-information more tightly.
-\item[(F5)] \emph{Cross-release composition.} Study budget composition over
-multiple releases to the same subject; the present analysis is single-release
-and does not cover a repeated-query adversary.
+\item[(F1)] \emph{Measured identification error on inverted identities.} Two of the three latent-level validation stages are complete
+(Section~\ref{sec:latent}): the released SemanticStyleGAN generator fixes the real per-block
+variance, clipped range, utility weights and Wiener residuals, and checks
+Assumptions~\ref{as:range}--\ref{as:indep} on the true latent geometry. The attack stage remains. Invert a
+labelled identity corpus (CelebAMask-HQ file names joined to the CelebA identity list)
+through the generator, train a recognition head on held-out identities, and measure the
+identification error against the certified floor, replacing the surrogate $P_e$ used here.
+This would also upgrade the source statistics from a prior pushforward to an
+inversion-based calibration. \item[(F2)] \emph{Automatic private-partition learning.} Develop a method that derives the private
+set $P$ from an explicit privacy target and the measured task--private overlap, instead
+of declaring it by hand. \item[(F3)] \emph{Accounting beyond Gaussian noise.} Extend the auditable composition and
+certificate to non-Gaussian noise mechanisms, where the privacy-loss distribution is not
+exactly Gaussian and GDP quadrature no longer applies. \item[(F4)] \emph{Tightening the correlated-source bound.} Under strong
+between-block correlation, estimate the joint covariance and replace the block-wise
+AM--GM relaxation by the exact determinant bound of Lemma~\ref{lm:maxent}, so the certified leakage
+reflects the true joint mutual information more tightly. \item[(F5)] \emph{Cross-release composition.} Study budget
+composition over multiple releases to the same subject; the present analysis is
+single-release and does not cover a repeated-query adversary.
 \end{enumerate}
 
 % =====================================================================
@@ -1623,36 +1593,32 @@ general-purpose tool for auditing latent releases that satisfy the stated
 model assumptions, and is not tied to SemanticStyleGAN; that generator serves
 only as the testbed for the numerical calibration.
 
-The evidence now includes a latent-level measurement on the released
-SemanticStyleGAN generator: all four calibration scalars are measured on real
-decomposed codes and generator decodes, and the accounting ordering, the
-overlap--price relation and the static-rule failure all reproduce on the
-measured calibration. The remaining surrogate is the identification attack
-error, whose measurement on an inverted-identity corpus is the first item of
-future work.
+The evidence now includes a latent-level measurement on the released SemanticStyleGAN
+generator. All four calibration scalars are measured on real decomposed codes and
+generator decodes. Three results reproduce on that measured calibration: the accounting
+ordering, the overlap--price relation, and the static-rule failure. One surrogate
+remains --- the identification attack error. Measuring it on an inverted-identity corpus
+is the first item of future work.
 
 \subsection*{Code and Data Availability}
-The calibration routines, the closed-form allocator and its accounting
-solvers, the reproduction pipeline, the latent-level measurement pipeline, the
-PGFPlots data files and the unit tests are available at
+The calibration routines, the closed-form allocator and its accounting solvers, the
+reproduction pipeline, the latent-level measurement pipeline, the PGFPlots data files
+and the unit tests are available at
 \url{https://github.com/wqinmin975/Auditable-Privacy-Accounting-and-Dynamic-Semantic-Budget};
-the archived release DOI will be inserted upon publication. The
-CelebAMask-HQ shard used for the measured proxy is downloaded from the public
-Hugging Face dataset \texttt{v-xchen-v/celebamask\_hq}; it is used under the
-original dataset's research license, for proxy statistics only. The latent
-calibration loads the official SemanticStyleGAN CelebAMask-HQ checkpoint from
-the authors' public release, with the generator code vendored under
-\texttt{third\_party/} together with its license. No face images, identity
-labels, or inverted latent corpus are redistributed in this release; the
-reported latent statistics are computed from generator-sampled prior codes
-that carry no real identity, and only aggregate per-block scalars and curves
-are reported. Reproduction splits into two parts: (i) the synthetic anchor and
-the proxy calibrations, which run entirely on CPU from the committed code and
-`.dat` sources; and (ii) the full identification-attack experiment, which needs
-a GPU and an inverted, labelled face-identity corpus and is not yet implemented
-in the release. Large generated binaries (multi-GB source-statistics arrays and
-the pretrained checkpoint) are excluded by \texttt{.gitignore}; the repository
-README documents how to regenerate or download each of them.
+the archived release DOI will be inserted upon publication. The CelebAMask-HQ shard used
+for the measured proxy is downloaded from the public Hugging Face dataset \texttt{v-xchen-v/celebamask\_hq}; it is
+used under the original dataset's research license, for proxy statistics only. The
+latent calibration loads the official SemanticStyleGAN CelebAMask-HQ checkpoint from the
+authors' public release, with the generator code vendored under \texttt{third\_party/} together with its
+license. No face images, identity labels, or inverted latent corpus are redistributed
+here. The reported latent statistics come from generator-sampled prior codes that carry
+no real identity, and only aggregate per-block scalars and curves are reported.
+Reproduction splits in two. The synthetic anchor and proxy calibrations run entirely on
+CPU from the committed code and `.dat` sources. The full identification-attack
+experiment needs a GPU and an inverted, labelled face-identity corpus, and is not yet
+implemented in the release. Large generated binaries --- multi-GB source-statistics
+arrays and the pretrained checkpoint --- are excluded by \texttt{.gitignore}; the repository README
+documents how to regenerate or download each of them.
 
 \subsection*{Biographies}
 
