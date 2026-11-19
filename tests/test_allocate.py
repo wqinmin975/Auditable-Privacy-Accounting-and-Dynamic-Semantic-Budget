@@ -36,10 +36,10 @@ def cal() -> Calibration:
 
 # ----------------------------------------------------------------- Theorem 3
 def test_kkt_stationarity(cal):
-    """At the solution, a_h = mu g_h / (2 x_h (x_h + g_h)) for every component."""
+    """At the solution, a_h = mu g_h / (2 x_h (x_h + g_h/d_h)) (AM-GM leakage bound)."""
     alloc = solve_mi_budget(cal, tau=0.90)
     x = alloc.sigma ** 2
-    stat = alloc.mu * cal.g / (2 * x * (x + cal.g))
+    stat = alloc.mu * cal.g / (2 * x * (x + cal.g / cal.d))
     assert np.allclose(stat, cal.a, rtol=1e-6, atol=1e-9), "KKT stationarity violated"
     assert alloc.mu > 0
 
@@ -63,15 +63,15 @@ def test_closed_form_matches_numeric_minimisation(cal):
     from scipy.optimize import minimize
 
     H = 3
-    a, g = cal.a[:H], cal.g[:H]
-    i_target = 0.9 * leakage_nats(np.sqrt(g) * 0.3, g)  # feasible target
+    a, g, d = cal.a[:H], cal.g[:H], cal.d[:H]
+    i_target = 0.9 * leakage_nats(np.sqrt(g) * 0.3, g, d=d)  # feasible target
 
     sigma_cf = solve_mi_budget(_slice(cal, H), i_max=i_target).sigma
 
     def obj(x):
         return float(np.sum(a * x))
 
-    cons = [{"type": "ineq", "fun": lambda x: i_target - leakage_nats(np.sqrt(np.maximum(x, 1e-12)), g)}]
+    cons = [{"type": "ineq", "fun": lambda x: i_target - leakage_nats(np.sqrt(np.maximum(x, 1e-12)), g, d=d)}]
     res = minimize(obj, np.full(H, g.mean()), method="SLSQP", constraints=cons,
                    bounds=[(1e-9, None)] * H, options={"ftol": 1e-12, "maxiter": 500})
     assert res.success
@@ -122,12 +122,13 @@ def test_ell1_allocation_law(cal):
 
 
 def test_waterfill_asymptotics(cal):
-    """Small-noise regime x_h ~ mu/(2 a_h); large-noise regime sqrt(mu g_h/(2 a_h))."""
-    a, g = cal.a, cal.g
-    x_small = waterfill_sigma(1e-6, a, g) ** 2
-    assert np.allclose(x_small / (1e-6 / (2 * a)), 1.0, rtol=0.01)
+    """Small-noise x_h ~ mu d_h/(2 a_h); large-noise ~ sqrt(mu g_h/(2 a_h)) (AM-GM bound)."""
+    a, g, d = cal.a, cal.g, cal.d
+    nu_small = 1e-10  # keep nu*d_h^2/(a_h g_h) << 1 so the leading term dominates
+    x_small = waterfill_sigma(nu_small, a, g, d=d) ** 2
+    assert np.allclose(x_small / (nu_small * d / (2 * a)), 1.0, rtol=0.01)
     mu = 1e6
-    x_large = waterfill_sigma(mu, a, g) ** 2
+    x_large = waterfill_sigma(mu, a, g, d=d) ** 2
     pred = np.sqrt(mu * g / (2 * a))
     assert np.allclose(x_large / pred, 1.0, rtol=0.02)
 

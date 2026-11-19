@@ -13,16 +13,21 @@ The allocator minimises the predicted legitimate-user distortion
 
 subject to an information-leakage budget
 
-    I(sigma) = sum_{h in P} 0.5 * ln(1 + g_h / sigma_h^2)  <=  I_max  (privacy)
+    I(sigma) = sum_{h in P} (d_h/2) * ln(1 + g_h / (d_h sigma_h^2)) <= I_max
 
-where g_h is the block source power Tr Sigma_h (trace bound, see the
-vector-release convention in ``calibrate.py``); the coordinate count d_h
-enters the block sensitivity and the trace proxy. The program is convex: the
-leakage term is convex in x_h = sigma_h^2, the objective is linear. Its KKT
-point is available in closed form (the paper denotes the dual multiplier by
-nu; the code field is still named ``mu``):
+where g_h = Tr Sigma_h is the block source power and d_h its coordinate count.
+This is the AM-GM / Jensen upper bound on the Gaussian worst-case MI,
 
-    x_h^*(nu) = (g_h / 2) * ( sqrt(1 + 2 nu / (w_h kappa_h g_h)) - 1 )
+    I(z_h; z_h+N_h) <= 1/2 log det(I + Sigma_h/sigma_h^2)
+                    <= (d_h/2) log(1 + g_h/(d_h sigma_h^2)),
+
+which is a TRUE upper bound. The earlier 1/2 log(1+g_h/sigma_h^2) trace proxy
+was a LOWER bound for d_h>1 and has been corrected (manuscript Lemma 1).
+The program is convex in x_h = sigma_h^2; its KKT point is available in closed
+form (the paper denotes the dual multiplier by nu; the code field is still
+named ``mu``):
+
+    x_h^*(nu) = (g_h / (2 d_h)) * ( sqrt(1 + 2 nu d_h^2 / (w_h kappa_h g_h)) - 1 )
 
 with nu >= 0 fixed by the budget through bisection. The dual function is
 strictly decreasing in nu, from +inf (nu -> 0) to 0 (nu -> inf), so the root
@@ -92,21 +97,30 @@ def fano_floor(i_bits: float, n_identities: int = 10_000) -> float:
     return float(np.clip(val, 0.0, 1.0))
 
 
-def leakage_nats(sigma: np.ndarray, g: np.ndarray, mask: np.ndarray | None = None) -> float:
-    """sum_{h in P} 0.5 ln(1 + g_h / sigma_h^2): relaxed trace-bound AWGN MI.
+def leakage_nats(sigma: np.ndarray, g: np.ndarray, mask: np.ndarray | None = None,
+                 d: np.ndarray | None = None) -> float:
+    """sum_{h in P} (d_h/2) ln(1 + g_h/(d_h sigma_h^2)): AM-GM AWGN MI upper bound.
 
-    Vector-release convention: block h is a d_h-dimensional vector. The Gaussian
-    worst-case MI is bounded by the relaxed trace bound
-    I(z_h; z_h+N_h) <= 1/2 ln(1 + Tr Sigma_h / sigma_h^2); g_h is the block
-    trace Tr Sigma_h (see Sec. 3 of the section). The sum runs over the
-    *declared private subspace* P only (``mask``).
+    Vector-release convention: block h is a d_h-dimensional vector with source
+    power g_h = Tr Sigma_h. The Gaussian worst-case MI obeys
+
+        I(z_h; z_h+N_h) <= 1/2 log det(I + Sigma_h/sigma_h^2)
+                        <= (d_h/2) log(1 + g_h/(d_h sigma_h^2)),
+
+    the second step by AM-GM on the eigenvalues of Sigma_h (a TRUE upper bound;
+    the old 1/2 log(1+g_h/sigma_h^2) proxy was a lower bound for d_h>1).
+    ``d`` supplies d_h; when omitted it defaults to 1 (scalar-release limit).
+    The sum runs over the *declared private subspace* P only (``mask``).
     """
     x = np.maximum(np.asarray(sigma, dtype=float) ** 2, 1e-300)
     g = np.asarray(g, dtype=float)
+    if d is None:
+        d = np.ones_like(g)
+    d = np.asarray(d, dtype=float)
     if mask is not None:
         m = np.asarray(mask, dtype=bool)
-        x, g = x[m], g[m]
-    return float(np.sum(0.5 * np.log1p(g / x)))
+        x, g, d = x[m], g[m], d[m]
+    return float(np.sum(0.5 * d * np.log1p(g / (d * x))))
 
 
 def rdp_gaussian(sigma: np.ndarray, df: np.ndarray, alpha: float,
@@ -168,17 +182,25 @@ def gdp_epsilon(mu: float, delta: float) -> float:
 # allocation
 # --------------------------------------------------------------------------- #
 def waterfill_sigma(mu: float, a: np.ndarray, g: np.ndarray,
-                    mask: np.ndarray | None = None) -> np.ndarray:
-    """Closed-form KKT solution x_h*(mu) = (g_h/2)(sqrt(1 + 2 mu/(a_h g_h)) - 1).
+                    mask: np.ndarray | None = None,
+                    d: np.ndarray | None = None) -> np.ndarray:
+    """Closed-form KKT solution for the AM-GM leakage constraint.
 
-    Components outside the private subspace carry no privacy obligation and no
-    benefit from noise, so their allocated noise is exactly zero.
+        x_h*(mu) = (g_h/(2 d_h)) ( sqrt(1 + 2 mu d_h^2/(a_h g_h)) - 1 )
+
+    ``d`` supplies d_h; when omitted it defaults to 1 (scalar-release limit,
+    recovering the old x_h = (g_h/2)(sqrt(1+2mu/(a_h g_h))-1)). Components
+    outside the private subspace carry no privacy obligation and no benefit
+    from noise, so their allocated noise is exactly zero.
     """
     a = np.asarray(a, dtype=float)
     g = np.asarray(g, dtype=float)
+    if d is None:
+        d = np.ones_like(g)
+    d = np.asarray(d, dtype=float)
     if mu < 0:
         raise ValueError("mu must be non-negative")
-    x = 0.5 * g * (np.sqrt(1.0 + 2.0 * mu / (a * g)) - 1.0)
+    x = (g / (2.0 * d)) * (np.sqrt(1.0 + 2.0 * mu * d ** 2 / (a * g)) - 1.0)
     sigma = np.sqrt(np.maximum(x, 0.0))
     if mask is not None:
         sigma = sigma * np.asarray(mask, dtype=float)
@@ -196,8 +218,8 @@ def _solve_mu(
 
     def excess(log_mu: float) -> float:
         mu = 10.0 ** log_mu
-        sigma = waterfill_sigma(mu, cal.a, cal.g, mask)
-        return leakage_nats(sigma, cal.g, mask) - i_max_nats
+        sigma = waterfill_sigma(mu, cal.a, cal.g, mask, cal.d)
+        return leakage_nats(sigma, cal.g, mask, cal.d) - i_max_nats
 
     lo, hi = depth_lo, depth_hi
     if excess(lo) <= 0.0:  # budget larger than the no-noise leakage: no noise needed
@@ -219,14 +241,14 @@ def solve_mi_budget(
             tau = 0.90
         i_max = i_max_bits(tau, n_identities) * LN2  # bits -> nats
     mu = _solve_mu(cal, i_max)
-    sigma = waterfill_sigma(mu, cal.a, cal.g, cal.private)
+    sigma = waterfill_sigma(mu, cal.a, cal.g, cal.private, cal.d)
     return Allocation(scheme="mi", sigma=sigma, mu=mu, budget=i_max,
                       cal=cal, n_identities=n_identities, delta=None)
 
 
 def _scale_to_epsilon(cal: Calibration, eps_target: float, eps_of_sigma: Callable[[np.ndarray], float]) -> np.ndarray:
     """Generic scaling search: eps(sigma) is decreasing in the noise scale."""
-    base = waterfill_sigma(1.0, cal.a, cal.g, cal.private)
+    base = waterfill_sigma(1.0, cal.a, cal.g, cal.private, cal.d)
     base = np.where(base > 0, base, 1e-6) * cal.private
 
     def excess(log_c: float) -> float:
@@ -396,7 +418,7 @@ class Allocation:
         return float(np.mean(10.0 * np.log10(g / x)))
 
     def leakage_bits(self) -> float:
-        return leakage_nats(self.sigma, self.cal.g, self.cal.private) / LN2
+        return leakage_nats(self.sigma, self.cal.g, self.cal.private, self.cal.d) / LN2
 
     def certified_error_floor(self) -> float:
         return fano_floor(self.leakage_bits(), self.n_identities)
@@ -425,12 +447,12 @@ class Allocation:
         return float(p.max() / p.sum()) if p.sum() > 0 else float("nan")
 
     def kkt_residual(self) -> float:
-        """Max |a_h - mu d_h g_h / (2 x_h (x_h + g_h))| ; zero at the KKT point."""
+        """Max |a_h - mu g_h / (2 x_h (x_h + g_h/d_h))| ; zero at the KKT point."""
         if not np.isfinite(self.mu) or self.mu <= 0:
             return float("nan")
         x = self.sigma ** 2
         stat = np.abs(self.cal.a - self.mu * self.cal.g /
-                      (2.0 * x * (x + self.cal.g)))
+                      (2.0 * x * (x + self.cal.g / self.cal.d)))
         return float(np.max(stat))
 
     def summary(self) -> dict:
@@ -469,5 +491,5 @@ def evaluate(cal: Calibration, sigma: np.ndarray, delta: float | None = 1e-5) ->
 
 def monotone_check(cal: Calibration, mus: np.ndarray) -> np.ndarray:
     """Leakage as a function of mu (strictly decreasing, used by the bisection)."""
-    return np.array([leakage_nats(waterfill_sigma(float(m), cal.a, cal.g, cal.private),
-                                  cal.g, cal.private) for m in mus])
+    return np.array([leakage_nats(waterfill_sigma(float(m), cal.a, cal.g, cal.private, cal.d),
+                                  cal.g, cal.private, cal.d) for m in mus])

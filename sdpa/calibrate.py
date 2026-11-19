@@ -9,10 +9,11 @@ code Z = [Z_0, ..., Z_{H-1}], Z_h in R^{d_h}, we need four scalars:
     kappa_h  residual fraction   Var[z_h - zhat_h] / sigma_h^2 after deprotection
 
 Vector-release convention: each block h is released as a d_h-dimensional
-vector. The worst-case AWGN mutual information uses the relaxed trace bound
-I(z_h; z_h+N_h) <= 1/2 log(1 + Tr Sigma_h / sigma_h^2), so g_h is the block
-trace Tr Sigma_h; d_h enters both the trace proxy and the block L2 sensitivity
-Delta f_h = sqrt(d_h)(b-a).
+vector. The worst-case AWGN mutual information uses the AM-GM (Jensen) bound
+I(z_h; z_h+N_h) <= (d_h/2) log(1 + Tr Sigma_h / (d_h sigma_h^2)), so g_h is
+the block trace Tr Sigma_h; d_h enters both this leak bound and the block L2
+sensitivity Delta f_h = sqrt(d_h)(b-a). (The old 1/2 log(1+Tr Sigma/sigma^2)
+"trace proxy" was a lower bound for d_h>1 and has been corrected.)
 
 The pair (w_h, kappa_h) enters the objective of the budget-allocation
 program; g_h and df_h enter the privacy constraints.

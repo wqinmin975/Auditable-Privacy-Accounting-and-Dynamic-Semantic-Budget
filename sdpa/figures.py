@@ -240,7 +240,7 @@ def fig_composite(eps_list: np.ndarray | None = None, delta: float = 1e-5):
     colors = ["#1f4e79", "#2e75b6", "#c55a11"]
     for wv, lab, col, ls in zip(w_list, labels, colors, ["-", "--", ":"]):
         a_single = np.full(aligned.H, wv * aligned.kappa[h0])
-        yy = [waterfill_sigma(m, a_single, aligned.g, np.ones(aligned.H, bool))[h0] ** 2 / aligned.g[h0]
+        yy = [waterfill_sigma(m, a_single, aligned.g, np.ones(aligned.H, bool), aligned.d)[h0] ** 2 / aligned.g[h0]
               for m in mus]
         ax.loglog(mus, yy, color=col, lw=1.0, ls=ls, label=lab)
     ax.set_xlabel(r"dual variable $\nu$")
@@ -290,7 +290,7 @@ def fig_composite(eps_list: np.ndarray | None = None, delta: float = 1e-5):
               ["mu", "w_1", "w_8", "w_125"],
               [mus]
               + [[waterfill_sigma(m, np.full(aligned.H, wv * aligned.kappa[h0]), aligned.g,
-                                  np.ones(aligned.H, bool))[h0] ** 2 / aligned.g[h0]
+                                  np.ones(aligned.H, bool), aligned.d)[h0] ** 2 / aligned.g[h0]
                  for m in mus] for wv in w_list])
     write_dat(FIG_DIR / "dat" / "certificate_gap.dat", ["tau", "gap"], [taus, np.array(gaps)])
     return _save(fig, "fig3_composite")
