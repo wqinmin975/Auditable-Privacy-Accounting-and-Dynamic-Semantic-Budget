@@ -141,8 +141,7 @@ release can satisfy a DP budget yet still leak an identifiable amount, and a
 release can hold a Fano floor without satisfying DP. The two are reported side
 by side throughout.
 
-The gap this paper addresses is common to the current semantic-privacy
-literature, not specific to one scheme. Most existing designs optimize a learned
+This gap is not unique to the reference scheme. Most existing designs optimize a learned
 noise-shaping network against a distortion objective; they rarely state the
 component-wise sensitivity of the decomposed latent, fix a composition law for
 the private blocks, or report a DP budget and an identification-error floor
@@ -158,15 +157,15 @@ charged to individual semantic components.
 \emph{(2) Post-processing and invertible shaping.} An invertible learned shaping
 cannot raise the guarantee: post-processing leaves the privacy loss unchanged,
 so such a component is legitimate only as a keyed, key-conditional design
-element. This settles whether a learned invertible denoiser can improve Bob's
+element. This answers whether a learned invertible denoiser can improve Bob's
 utility without also helping Eve. The certificate below assumes $T$ invertible
 and known to the eavesdropper (the worst case); a Bob-secret $T$ is reported as
 key-conditional rather than plain $(\varepsilon,\delta)$-DP.
 \emph{(3) Identification certificate.} A Gaussian worst-case mutual-information
 bound combined with Fano's inequality certifies an identification-error floor
 for an adversary observing the release, with an explicit feasibility ceiling
-$\tau_{\max}(K)$. This replaces a marginal-distribution ``looks private''
-argument by an operational attack-error lower bound.
+$\tau_{\max}(K)$. This supplies an operational attack-error lower bound in
+place of a marginal-distribution ``looks private'' argument.
 \emph{(4) Allocation law and DP audit.} The certificate's budget program is
 convex and admits a closed-form water-filling KKT solution with two asymptotic
 regimes; the same KKT analysis gives the noise profile induced by each standard
@@ -227,8 +226,8 @@ encoders decompose an image into a global structure code and part-wise local
 codes that support controllable synthesis and editing~\cite{semanticstylegan}.
 Releasing such codes over a wireless link is the standard semantic-communication
 pipeline, and the released part codes carry the identity of the subject; recent
-surveys of security and privacy in semantic communications review the broader
-threat and technique landscape~\cite{semcomsurvey_won,semcomsurvey_meng}. The
+surveys of security and privacy in semantic communications cover the
+threat models and defence techniques~\cite{semcomsurvey_won,semcomsurvey_meng}. The
 reference semantic-adaptive DP design~\cite{arXiv2510} perturbs a subset of
 codes with Laplace noise calibrated to a stated global sensitivity
 ($\Delta f=351.88$) and nominal $\varepsilon$, then shapes it with a learned
@@ -899,7 +898,7 @@ so stationarity $a_h=\nu\chi_h/x_h^2$ gives
 x_h^{\star}\propto\frac{\Delta f_h}{\sqrt{a_h}},
 \label{eq:quadshape}
 \end{equation}
-i.e.\ exponent $1/2$ in the task weight --- the same profile as the rigorous
+i.e.\ exponent $1/2$ in the task weight. This is the same profile as the rigorous
 tail bound at large $\mu$ (part (c)), and \emph{not} the logarithmic profile
 \eqref{eq:kkt}. The two coincide only in the geometry-driven limit $x\gg g$ of
 the log constraint, where substituting $g_h\mapsto\Delta f_h^2$ makes the
@@ -1247,7 +1246,7 @@ MI certificate & 0.240 & 0.329 & 0.900 & 70.1,\,2755 \\
 RDP & 0.793 & 0.007 & 0.924 & 10.13,\,94.5 \\
 GDP & 0.788 & 0.007 & 0.924 & 10.51,\,100.0 \\
 $\ell_1$ basic & 0.853 & 0.006 & 0.924 & 8.44,\,71.6 \\
-static $k{=}4$ & 0.146 & 5.5\times10^{3} & 0.000 & --- \\
+static $k{=}4$ & 0.146 & $5.5\times10^{3}$ & 0.000 & --- \\
 \bottomrule
 \end{tabular}
 $^\dagger$surrogate.
@@ -1417,7 +1416,7 @@ $d_h=1024$; global sensitivity $\approx517$) exceeds what a Gaussian-range
 assumption would certify. The measured $\kappa_h\approx0.24$ is essentially
 flat across blocks, as the Wiener residual depends mainly on the local
 signal-to-noise geometry. Figure~\ref{fig:latent} plots the utility
-landscape, example sweep curves with their quadratic fits, and the empirical
+weights, example sweep curves with their quadratic fits, and the empirical
 versus analytic $\kappa$ curves.
 
 \begin{table}[t]
@@ -1490,20 +1489,20 @@ reconstruction & MI certificate & 0.862 & 0.329 & 0.900 \\
 (overlap 1.000, & RDP            & 0.861 & 1.931 & 0.779 \\
 $|P|{=}15$)    & GDP            & 0.861 & 2.077 & 0.768 \\
                & $\ell_1$ basic & 0.862 & 0.634 & 0.877 \\
-               & static $k{=}4$ & 0.832 & 9.7\times10^{4} & 0.000 \\
+               & static $k{=}4$ & 0.832 & $9.7\times10^{4}$ & 0.000 \\
 \midrule
 task-decoupled & MI certificate & 0.861 & 0.329 & 0.900 \\
 (overlap 0.590, & RDP           & 0.857 & 1.931 & 0.779 \\
 $|P|{=}7$)     & GDP            & 0.857 & 2.076 & 0.769 \\
                & $\ell_1$ basic & 0.860 & 1.367 & 0.822 \\
-               & static $k{=}4$ & 0.832 & 2.9\times10^{4} & 0.000 \\
+               & static $k{=}4$ & 0.832 & $2.9\times10^{4}$ & 0.000 \\
 \bottomrule
 \end{tabular}
 $^\dagger$saturating surrogate scale; measured inputs.
 \end{table}
 
 \emph{Findings.} Three observations survive the move from proxy to
-measurement. First, the measured utility landscape is concentrated:
+measurement. First, the measured utility weights are concentrated:
 $w_h$ is large on shared\_1 ($0.342$), hair ($0.275$), shared\_0 ($0.271$),
 skin ($0.174$) and background ($0.170$), while the facial-feature blocks are
 nearly free to protect ($w_{\mathrm{eyes}}{=}0.0097$,
